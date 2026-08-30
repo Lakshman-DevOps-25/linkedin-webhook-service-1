@@ -2,44 +2,26 @@ const crypto = require("crypto");
 const axios = require("axios");
 
 const LinkedInData = require("../models/LinkedInData");
-
-
 /*
 |--------------------------------------------------------------------------
 | LinkedIn API Configuration
 |--------------------------------------------------------------------------
 */
-
-const LINKEDIN_API =
-  "https://api.linkedin.com/rest";
-
-const LINKEDIN_VERSION =
-  "202608";
-
-
+const LINKEDIN_API = "https://api.linkedin.com/rest";   
+const LINKEDIN_VERSION = "202608";
 /*
 |--------------------------------------------------------------------------
 | Common LinkedIn Headers
 |--------------------------------------------------------------------------
 */
-
 const getLinkedInHeaders = () => {
-
   return {
-    Authorization:
-      `Bearer ${process.env.LINKEDIN_ACCESS_TOKEN}`,
-
-    "LinkedIn-Version":
-      LINKEDIN_VERSION,
-
-    "X-Restli-Protocol-Version":
-      "2.0.0",
-
-    "Content-Type":
-      "application/json"
+    Authorization: `Bearer ${process.env.LINKEDIN_ACCESS_TOKEN}`,
+    "LinkedIn-Version": LINKEDIN_VERSION,
+    "X-Restli-Protocol-Version": "2.0.0",
+    "Content-Type": "application/json"
   };
 };
-
 
 /*
 |--------------------------------------------------------------------------
@@ -56,24 +38,16 @@ const getLinkedInHeaders = () => {
 */
 
 const validateWebhook = (req, res) => {
-
   try {
-
     console.log("");
     console.log("========================================");
     console.log("LINKEDIN WEBHOOK VALIDATION");
     console.log("========================================");
+    console.log( "Query:", req.query);
 
-    console.log(
-      "Query:",
-      req.query
-    );
-
-    const clientSecret =
-      process.env.LINKEDIN_CLIENT_SECRET;
+    const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
 
     if (!clientSecret) {
-
       console.error(
         "LINKEDIN_CLIENT_SECRET is missing"
       );
@@ -92,65 +66,26 @@ const validateWebhook = (req, res) => {
      * Normalize it in case Express receives an array.
      */
 
-    const rawChallengeCode =
-      req.query.challengeCode;
-
-    const challengeCode =
-      Array.isArray(rawChallengeCode)
-        ? rawChallengeCode[0]
-        : rawChallengeCode;
-
+    const rawChallengeCode = req.query.challengeCode;
+    const challengeCode = Array.isArray(rawChallengeCode) ? rawChallengeCode[0] : rawChallengeCode;
 
     if (!challengeCode) {
-
-      console.error(
-        "challengeCode is missing"
-      );
-
+      console.error("challengeCode is missing");
       return res.status(400).json({
         success: false,
-        error:
-          "Missing challengeCode"
+        error: "Missing challengeCode"
       });
     }
-
-
-    console.log(
-      "challengeCode:",
-      challengeCode
-    );
-
+    console.log("challengeCode:", challengeCode);
 
     /*
      * Generate HMAC SHA256.
      */
+    const challengeResponse = crypto.createHmac("sha256",clientSecret).update(String(challengeCode),"utf8").digest("hex");
 
-    const challengeResponse =
-      crypto
-        .createHmac(
-          "sha256",
-          clientSecret
-        )
-        .update(
-          String(challengeCode),
-          "utf8"
-        )
-        .digest("hex");
-
-
-    console.log(
-      "challengeResponse:",
-      challengeResponse
-    );
-
-    console.log(
-      "Returning HTTP 200"
-    );
-
-    console.log(
-      "========================================"
-    );
-
+    console.log("challengeResponse:",challengeResponse);
+    console.log("Returning HTTP 200");
+    console.log("========================================");
 
     /*
      * IMPORTANT:
@@ -160,30 +95,19 @@ const validateWebhook = (req, res) => {
      *
      * This request must finish quickly.
      */
-
     return res.status(200).json({
-
       challengeCode,
-
       challengeResponse
-
     });
-
   } catch (error) {
-
-    console.error(
-      "Webhook validation error:",
-      error.message
-    );
+    console.error("Webhook validation error:",error.message);
 
     return res.status(500).json({
       success: false,
-      error:
-        "Webhook validation failed"
+      error: "Webhook validation failed"
     });
   }
 };
-
 
 /*
 |--------------------------------------------------------------------------
@@ -194,23 +118,14 @@ const validateWebhook = (req, res) => {
 |
 |--------------------------------------------------------------------------
 */
-
 const receiveWebhook = async (req, res) => {
-
   try {
-
     console.log("");
     console.log("========================================");
     console.log("LINKEDIN WEBHOOK EVENT RECEIVED");
     console.log("========================================");
 
-    console.log(
-      JSON.stringify(
-        req.body,
-        null,
-        2
-      )
-    );
+    console.log(JSON.stringify(req.body, null,2));
 
     /*
      * IMPORTANT:
@@ -224,31 +139,18 @@ const receiveWebhook = async (req, res) => {
      * comments
      * MongoDB
      */
-
     res.sendStatus(200);
-
 
     /*
      * Start processing after response.
      */
 
-    processLinkedInData()
-      .catch((error) => {
-
-        console.error(
-          "LinkedIn background processing failed:"
-        );
-
-        console.error(
-          error.response?.data ||
-          error.message
-        );
+    processLinkedInData().catch((error) => {
+        console.error("LinkedIn background processing failed:");
+        console.error(error.response?.data || error.message);
       });
-
   } catch (error) {
-
-    console.error(
-      "Webhook receive error:",
+    console.error("Webhook receive error:",
       error.message
     );
 
@@ -277,12 +179,8 @@ const receiveWebhook = async (req, res) => {
 */
 
 const getOrganizationId = async () => {
-
   console.log("");
-  console.log(
-    "STEP 1: Getting organization access..."
-  );
-
+  console.log("STEP 1: Getting organization access...");
 
   const response = await axios.get(
     `${LINKEDIN_API}/organizationAcls`,
@@ -293,24 +191,18 @@ const getOrganizationId = async () => {
         state: "APPROVED"
       },
 
-      headers:
-        getLinkedInHeaders()
+      headers: getLinkedInHeaders()
     }
   );
 
 
-  const elements =
-    response.data?.elements || [];
+  const elements = response.data?.elements || [];
 
 
-  console.log(
-    "Organization ACL count:",
-    elements.length
-  );
+  console.log("Organization ACL count:", elements.length);
 
 
   if (!elements.length) {
-
     throw new Error(
       "No approved organization found for this LinkedIn user"
     );
@@ -324,9 +216,8 @@ const getOrganizationId = async () => {
    * urn:li:organization:9661
    */
 
-  const organizations =
-    elements
-      .filter(
+  const organizations = 
+      elements.filter(
         item =>
           item.organization
       )
@@ -349,10 +240,7 @@ const getOrganizationId = async () => {
       }));
 
 
-  console.log(
-    "Organizations:",
-    organizations
-  );
+  console.log("Organizations:", organizations);
 
 
   /*
@@ -372,11 +260,7 @@ const getOrganizationId = async () => {
     );
 
 
-  console.log(
-    "Unique organizations:",
-    uniqueOrganizations
-  );
-
+  console.log("Unique organizations:", uniqueOrganizations);
 
   /*
    * For this minimal implementation,
@@ -386,28 +270,15 @@ const getOrganizationId = async () => {
    * the loop can later be changed to process all.
    */
 
-  const organization =
-    uniqueOrganizations[0];
-
+  const organization = uniqueOrganizations[0];
 
   if (!organization) {
-
-    throw new Error(
-      "Unable to determine organization ID"
-    );
+    throw new Error("Unable to determine organization ID");
   }
 
+  console.log("Organization ID:", organization.organizationId);
 
-  console.log(
-    "Organization ID:",
-    organization.organizationId
-  );
-
-  console.log(
-    "Organization URN:",
-    organization.organizationUrn
-  );
-
+  console.log("Organization URN:", organization.organizationUrn);
 
   return organization;
 };
@@ -419,35 +290,17 @@ const getOrganizationId = async () => {
 |--------------------------------------------------------------------------
 */
 
-const getOrganization = async (
-  organizationId
-) => {
-
+const getOrganization = async (organizationId) => {
   console.log("");
-  console.log(
-    "STEP 2: Getting organization details..."
-  );
-
+  console.log("STEP 2: Getting organization details...");
 
   const response =
-    await axios.get(
-      `${LINKEDIN_API}/organizations/${organizationId}`,
-      {
-        headers:
-          getLinkedInHeaders()
-      }
+    await axios.get(`${LINKEDIN_API}/organizations/${organizationId}`,
+      { headers: getLinkedInHeaders() }
     );
 
-
-  console.log(
-    "Organization:",
-    JSON.stringify(
-      response.data,
-      null,
-      2
-    )
+  console.log("Organization:", JSON.stringify( response.data, null, 2)
   );
-
 
   return response.data;
 };
@@ -459,46 +312,25 @@ const getOrganization = async (
 |--------------------------------------------------------------------------
 */
 
-const saveOrganization = async (
-  organization,
-  organizationId,
-  organizationUrn
-) => {
+const saveOrganization = async (organization, organizationId, organizationUrn) => {
 
   await LinkedInData.findOneAndUpdate(
-
     {
-      linkedinId:
-        organizationUrn
+      linkedinId: organizationUrn
     },
-
     {
-
-      type:
-        "organization",
-
-      linkedinId:
-        organizationUrn,
-
+      type: "organization",
+      linkedinId: organizationUrn,
       organizationId,
-
       organizationUrn,
-
-      organizationName:
-        organization.localizedName ||
-        "",
-
-      rawData:
-        organization
-
+      organizationName: organization.localizedName || "",
+      rawData: organization
     },
-
     {
       upsert: true,
       new: true
     }
   );
-
 };
 
 
@@ -507,160 +339,79 @@ const saveOrganization = async (
 | 6. Get Organization Posts
 |--------------------------------------------------------------------------
 */
-
-const getPosts = async (
-  organizationUrn
-) => {
-
+const getPosts = async (organizationUrn) => {
   console.log("");
-  console.log(
-    "STEP 3: Getting organization posts..."
-  );
-
+  console.log("STEP 3: Getting organization posts...");
 
   const response =
-    await axios.get(
-      `${LINKEDIN_API}/posts`,
-      {
-
+    await axios.get(`${LINKEDIN_API}/posts`,{
         params: {
-
-          q:
-            "author",
-
-          author:
-            organizationUrn
-
+          q: "author",
+          author: organizationUrn
         },
-
-        headers:
-          getLinkedInHeaders()
-
+        headers: getLinkedInHeaders()
       }
     );
 
 
-  const posts =
-    response.data?.elements || [];
-
-
-  console.log(
-    "Posts received:",
-    posts.length
-  );
-
-
+  const posts = response.data?.elements || [];
+  console.log("Posts received:",posts.length);
   return posts;
 };
-
 
 /*
 |--------------------------------------------------------------------------
 | 7. Save Post
 |--------------------------------------------------------------------------
 */
-
-const savePost = async (
-  post,
-  organizationId,
-  organizationUrn,
-  organizationName
-) => {
-
-  const postId =
-    post.id;
-
-
+const savePost = async (post,organizationId,organizationUrn,organizationName) => {
+  const postId = post.id;
   if (!postId) {
-
-    console.warn(
-      "Post does not contain ID"
-    );
-
+    console.warn("Post does not contain ID");
     return;
   }
-
 
   /*
    * Current Posts API can contain
    * commentary under the post object.
    */
 
-  const text =
-    post.commentary ||
-    post.specificContent
-      ?.com.linkedin.ugc.ShareContent
-      ?.shareCommentary
-      ?.text ||
-    "";
-
+  const text = post.commentary || post.specificContent ?.com.linkedin.ugc.ShareContent ?.shareCommentary ?.text || "";
 
   /*
    * Convert LinkedIn timestamp to Date
    * if available.
    */
-
-  let createdAtLinkedIn =
-    null;
-
-
-  if (post.createdAt) {
-
-    createdAtLinkedIn =
-      new Date(
-        post.createdAt
-      );
-
+  let createdAtLinkedIn = null;
+  
+  if (post.createdAt) { 
+    createdAtLinkedIn = new Date( post.createdAt);
   } else if (
     post.created?.time
   ) {
-
-    createdAtLinkedIn =
-      new Date(
-        post.created.time
-      );
+    createdAtLinkedIn = new Date( post.created.time );
   }
 
-
   await LinkedInData.findOneAndUpdate(
-
     {
-      linkedinId:
-        postId
+      linkedinId: postId
     },
-
     {
-
-      type:
-        "post",
-
-      linkedinId:
-        postId,
-
+      type: "post",
+      linkedinId: postId,
       organizationId,
-
       organizationUrn,
-
       organizationName,
-
       postId,
-
       text,
-
       createdAtLinkedIn,
-
-      rawData:
-        post
-
+      rawData: post
     },
-
     {
       upsert: true,
       new: true
     }
-
   );
-
 };
 
 
@@ -670,39 +421,19 @@ const savePost = async (
 |--------------------------------------------------------------------------
 */
 
-const getComments = async (
-  postId
-) => {
+const getComments = async ( postId ) => {
 
-  console.log(
-    "Getting comments for:",
-    postId
-  );
+  console.log( "Getting comments for:", postId);
 
-
-  const response =
-    await axios.get(
-
+  const response = await axios.get(
       `${LINKEDIN_API}/socialActions/${encodeURIComponent(postId)}/comments`,
-
       {
-        headers:
-          getLinkedInHeaders()
+        headers: getLinkedInHeaders()
       }
-
     );
 
-
-  const comments =
-    response.data?.elements || [];
-
-
-  console.log(
-    "Comments received:",
-    comments.length
-  );
-
-
+  const comments = response.data?.elements || [];
+  console.log("Comments received:", comments.length);
   return comments;
 };
 
@@ -712,93 +443,41 @@ const getComments = async (
 | 9. Save Comment
 |--------------------------------------------------------------------------
 */
+const saveComment = async (comment, postId, organizationId, organizationUrn, organizationName) => {
 
-const saveComment = async (
-  comment,
-  postId,
-  organizationId,
-  organizationUrn,
-  organizationName
-) => {
-
-  const commentId =
-    comment.commentUrn ||
-    comment.id;
-
+  const commentId = comment.commentUrn || comment.id;
 
   if (!commentId) {
-
-    console.warn(
-      "Comment does not contain ID"
-    );
-
+    console.warn("Comment does not contain ID");
     return;
   }
 
+  const text = comment.message?.text || "";
+  let createdAtLinkedIn = null;
 
-  const text =
-    comment.message?.text ||
-    "";
-
-
-  let createdAtLinkedIn =
-    null;
-
-
-  if (
-    comment.created?.time
-  ) {
-
-    createdAtLinkedIn =
-      new Date(
-        comment.created.time
-      );
+  if ( comment.created?.time) {
+    createdAtLinkedIn = new Date(comment.created.time);
   }
 
-
   await LinkedInData.findOneAndUpdate(
-
+    {linkedinId: commentId},
     {
-      linkedinId:
-        commentId
-    },
-
-    {
-
-      type:
-        "comment",
-
-      linkedinId:
-        commentId,
-
+      type: "comment",
+      linkedinId: commentId,
       organizationId,
-
       organizationUrn,
-
       organizationName,
-
       postId,
-
-      author:
-        comment.actor ||
-        null,
-
+      author: comment.actor || null,
       text,
-
       createdAtLinkedIn,
-
-      rawData:
-        comment
-
+      rawData: comment
     },
-
     {
       upsert: true,
       new: true
     }
-
   );
-
 };
 
 
@@ -824,34 +503,18 @@ const saveComment = async (
 
 const processLinkedInData =
   async () => {
-
     console.log("");
-    console.log(
-      "========================================"
-    );
-
-    console.log(
-      "STARTING LINKEDIN DATA PROCESSING"
-    );
-
-    console.log(
-      "========================================"
-    );
-
+    console.log("========================================");
+    console.log("STARTING LINKEDIN DATA PROCESSING");
+    console.log("========================================");
 
     /*
      * Check access token.
      */
 
-    if (
-      !process.env.LINKEDIN_ACCESS_TOKEN
-    ) {
-
-      throw new Error(
-        "LINKEDIN_ACCESS_TOKEN is missing"
-      );
+    if (!process.env.LINKEDIN_ACCESS_TOKEN) {
+      throw new Error("LINKEDIN_ACCESS_TOKEN is missing");
     }
-
 
     /*
      * STEP 1
@@ -859,12 +522,7 @@ const processLinkedInData =
      * Get organization ID automatically.
      */
 
-    const {
-      organizationId,
-      organizationUrn
-    } =
-      await getOrganizationId();
-
+    const {organizationId, organizationUrn} = await getOrganizationId();
 
     /*
      * STEP 2
@@ -872,27 +530,13 @@ const processLinkedInData =
      * Get organization information.
      */
 
-    const organization =
-      await getOrganization(
-        organizationId
-      );
-
-
-    const organizationName =
-      organization.localizedName ||
-      organization.vanityName ||
-      "";
-
+    const organization = await getOrganization( organizationId);
+    const organizationName = organization.localizedName || organization.vanityName || "";
 
     /*
      * Save organization.
      */
-
-    await saveOrganization(
-      organization,
-      organizationId,
-      organizationUrn
-    );
+    await saveOrganization(organization, organizationId, organizationUrn);
 
 
     /*
@@ -901,18 +545,9 @@ const processLinkedInData =
      * Get organization posts.
      */
 
-    const posts =
-      await getPosts(
-        organizationUrn
-      );
-
-
-    let postsSaved =
-      0;
-
-    let commentsSaved =
-      0;
-
+    const posts = await getPosts(organizationUrn);
+    let postsSaved = 0;
+    let commentsSaved = 0;
 
     /*
      * STEP 4
@@ -920,119 +555,52 @@ const processLinkedInData =
      * Save posts and comments.
      */
 
-    for (
-      const post
-      of posts
-    ) {
-
+    for ( const post of posts ) {
       try {
-
         /*
          * Save post.
          */
-
-        await savePost(
-          post,
-          organizationId,
-          organizationUrn,
-          organizationName
-        );
-
-
+        await savePost( post, organizationId,  organizationUrn, organizationName);
         postsSaved++;
-
-
         /*
          * Get comments.
          */
-
-        const postId =
-          post.id;
-
-
+        const postId = post.id;
         if (!postId) {
           continue;
         }
 
-
-        const comments =
-          await getComments(
-            postId
-          );
-
+        const comments = await getComments(postId);
 
         /*
          * Save comments.
          */
 
-        for (
-          const comment
-          of comments
-        ) {
-
+        for (const comment of comments) {
           await saveComment(
-
             comment,
-
             postId,
-
             organizationId,
-
             organizationUrn,
-
             organizationName
-
           );
-
-
           commentsSaved++;
         }
 
-
       } catch (postError) {
-
-        console.error(
-          `Post processing failed for ${post.id}:`
-        );
-
-        console.error(
-          postError.response?.data ||
-          postError.message
-        );
+        console.error(`Post processing failed for ${post.id}:`);
+        console.error(postError.response?.data || postError.message);
       }
     }
 
-
     console.log("");
-    console.log(
-      "========================================"
-    );
-
-    console.log(
-      "LINKEDIN DATA PROCESSING COMPLETE"
-    );
-
-    console.log(
-      "Organization ID:",
-      organizationId
-    );
-
-    console.log(
-      "Posts saved:",
-      postsSaved
-    );
-
-    console.log(
-      "Comments saved:",
-      commentsSaved
-    );
-
-    console.log(
-      "========================================"
-    );
-
+    console.log("========================================");
+    console.log("LINKEDIN DATA PROCESSING COMPLETE");
+    console.log("Organization ID:", organizationId);
+    console.log("Posts saved:", postsSaved);
+    console.log("Comments saved:", commentsSaved);
+    console.log("========================================");
   };
-
 
 /*
 |--------------------------------------------------------------------------
@@ -1040,10 +608,4 @@ const processLinkedInData =
 |--------------------------------------------------------------------------
 */
 
-module.exports = {
-
-  validateWebhook,
-
-  receiveWebhook
-
-};
+module.exports = {validateWebhook, receiveWebhook};
