@@ -188,6 +188,129 @@ const receiveWebhook = async (req, res) => {
 |
 |--------------------------------------------------------------------------
 */
+/*
+const getOrganizationId = async () => {
+
+  console.log("STEP 1: Getting organization access...");
+
+  try {
+
+    const response = await axios.get(
+      `${LINKEDIN_API}/organizationAcls`,
+      {
+        params: {
+          q: "roleAssignee",
+          role: "ADMINISTRATOR",
+          state: "APPROVED"
+        },
+
+        headers: getLinkedInHeaders(),
+
+        validateStatus: () => true
+      }
+    );
+
+    console.log(
+      "LinkedIn organizationAcls status:",
+      response.status
+    );
+
+    console.log(
+      "LinkedIn organizationAcls response:",
+      JSON.stringify(
+        response.data,
+        null,
+        2
+      )
+    );
+
+    if (response.status >= 400) {
+
+      throw new Error(
+        `organizationAcls failed with HTTP ${response.status}: ` +
+        JSON.stringify(response.data)
+      );
+
+    }
+
+    const elements =
+      response.data?.elements || [];
+
+    if (!elements.length) {
+
+      throw new Error(
+        "No approved LinkedIn organizations found for this user."
+      );
+
+    }
+
+    const organization =
+      elements[0];
+
+    console.log(
+      "Organization ACL:",
+      JSON.stringify(
+        organization,
+        null,
+        2
+      )
+    );
+
+    /*
+     * Depending on the response, organization URN
+     * can be available in organization field.
+     
+    const organizationUrn =
+      organization.organization ||
+      organization.organizationalEntity;
+
+    if (!organizationUrn) {
+
+      throw new Error(
+        "Organization URN not found in organizationAcls response."
+      );
+
+    }
+
+    const organizationId =
+      organizationUrn.split(":").pop();
+
+    console.log(
+      "Organization ID:",
+      organizationId
+    );
+
+    return {
+      organizationId,
+      organizationUrn
+    };
+
+  } catch (error) {
+
+    console.error(
+      "getOrganizationId() failed:"
+    );
+
+    console.error(
+      error.response?.status
+    );
+
+    console.error(
+      JSON.stringify(
+        error.response?.data,
+        null,
+        2
+      )
+    );
+
+    console.error(
+      error.message
+    );
+
+    throw error;
+  }
+};
+*/
 
 const getOrganizationId = async () => {
 
@@ -310,7 +433,6 @@ const getOrganizationId = async () => {
     throw error;
   }
 };
-
 
 /*
 |--------------------------------------------------------------------------
