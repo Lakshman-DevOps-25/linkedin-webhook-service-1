@@ -31,4 +31,10 @@ router.post(
   receiveWebhook
 );
 
+
+router.get(
+  "/test-data",
+  testLinkedInData
+);
+
 module.exports = router;

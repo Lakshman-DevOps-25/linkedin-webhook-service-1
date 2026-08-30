@@ -7,7 +7,7 @@ const LinkedInData = require("../models/LinkedInData");
 | LinkedIn API Configuration
 |--------------------------------------------------------------------------
 */
-const LINKEDIN_API = "https://api.linkedin.com/rest";   
+const LINKEDIN_API = "https://api.linkedin.com/rest";
 const LINKEDIN_VERSION = "202608";
 /*
 |--------------------------------------------------------------------------
@@ -602,10 +602,60 @@ const processLinkedInData =
     console.log("========================================");
   };
 
+
+  const testLinkedInData = async (req, res) => {
+
+  console.log("");
+  console.log("========================================");
+  console.log("MANUAL LINKEDIN DATA TEST");
+  console.log("========================================");
+
+  try {
+
+    /*
+     * IMPORTANT:
+     * Do not wait for the whole operation.
+     */
+
+    res.status(202).json({
+      success: true,
+      message:
+        "LinkedIn data processing started"
+    });
+
+
+    console.log(
+      "Calling processLinkedInData()..."
+    );
+
+
+    await processLinkedInData();
+
+
+    console.log(
+      "processLinkedInData() completed"
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "processLinkedInData() failed:"
+    );
+
+    console.error(
+      error.response?.data ||
+      error.message
+    );
+
+  }
+
+};
+
 /*
 |--------------------------------------------------------------------------
 | Exports
 |--------------------------------------------------------------------------
 */
 
-module.exports = {validateWebhook, receiveWebhook};
+module.exports = {validateWebhook, receiveWebhook, testLinkedInData};
