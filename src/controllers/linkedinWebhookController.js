@@ -179,108 +179,125 @@ const receiveWebhook = async (req, res) => {
 */
 
 const getOrganizationId = async () => {
-  console.log("");
+
   console.log("STEP 1: Getting organization access...");
 
-  const response = await axios.get(
-    `${LINKEDIN_API}/organizationAcls`,
-    {
-      params: {
-        q: "roleAssignee",
-        role: "ADMINISTRATOR",
-        state: "APPROVED"
-      },
+  try {
 
-      headers: getLinkedInHeaders()
-    }
-  );
+    const response = await axios.get(
+      `${LINKEDIN_API}/organizationAcls`,
+      {
+        params: {
+          q: "roleAssignee",
+          role: "ADMINISTRATOR",
+          state: "APPROVED"
+        },
 
+        headers: getLinkedInHeaders(),
 
-  const elements = response.data?.elements || [];
-
-
-  console.log("Organization ACL count:", elements.length);
-
-
-  if (!elements.length) {
-    throw new Error(
-      "No approved organization found for this LinkedIn user"
+        validateStatus: () => true
+      }
     );
-  }
 
+    console.log(
+      "LinkedIn organizationAcls status:",
+      response.status
+    );
 
-  /*
-   * LinkedIn returns:
-   *
-   * organization:
-   * urn:li:organization:9661
-   */
-
-  const organizations = 
-      elements.filter(
-        item =>
-          item.organization
+    console.log(
+      "LinkedIn organizationAcls response:",
+      JSON.stringify(
+        response.data,
+        null,
+        2
       )
-      .map(item => ({
-
-        organizationUrn:
-          item.organization,
-
-        organizationId:
-          item.organization
-            .split(":")
-            .pop(),
-
-        role:
-          item.role,
-
-        state:
-          item.state
-
-      }));
-
-
-  console.log("Organizations:", organizations);
-
-
-  /*
-   * Remove duplicate organizations.
-   */
-
-  const uniqueOrganizations =
-    Array.from(
-      new Map(
-        organizations.map(
-          item => [
-            item.organizationId,
-            item
-          ]
-        )
-      ).values()
     );
 
+    if (response.status >= 400) {
 
-  console.log("Unique organizations:", uniqueOrganizations);
+      throw new Error(
+        `organizationAcls failed with HTTP ${response.status}: ` +
+        JSON.stringify(response.data)
+      );
 
-  /*
-   * For this minimal implementation,
-   * process the first approved organization.
-   *
-   * If your user manages multiple companies,
-   * the loop can later be changed to process all.
-   */
+    }
 
-  const organization = uniqueOrganizations[0];
+    const elements =
+      response.data?.elements || [];
 
-  if (!organization) {
-    throw new Error("Unable to determine organization ID");
+    if (!elements.length) {
+
+      throw new Error(
+        "No approved LinkedIn organizations found for this user."
+      );
+
+    }
+
+    const organization =
+      elements[0];
+
+    console.log(
+      "Organization ACL:",
+      JSON.stringify(
+        organization,
+        null,
+        2
+      )
+    );
+
+    /*
+     * Depending on the response, organization URN
+     * can be available in organization field.
+     */
+    const organizationUrn =
+      organization.organization ||
+      organization.organizationalEntity;
+
+    if (!organizationUrn) {
+
+      throw new Error(
+        "Organization URN not found in organizationAcls response."
+      );
+
+    }
+
+    const organizationId =
+      organizationUrn.split(":").pop();
+
+    console.log(
+      "Organization ID:",
+      organizationId
+    );
+
+    return {
+      organizationId,
+      organizationUrn
+    };
+
+  } catch (error) {
+
+    console.error(
+      "getOrganizationId() failed:"
+    );
+
+    console.error(
+      error.response?.status
+    );
+
+    console.error(
+      JSON.stringify(
+        error.response?.data,
+        null,
+        2
+      )
+    );
+
+    console.error(
+      error.message
+    );
+
+    throw error;
   }
-
-  console.log("Organization ID:", organization.organizationId);
-
-  console.log("Organization URN:", organization.organizationUrn);
-
-  return organization;
 };
 
 
