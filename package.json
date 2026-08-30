@@ -1,0 +1,20 @@
+{
+  "name": "linkedin-webhook-service",
+  "version": "1.0.0",
+  "description": "LinkedIn Webhook validation and event receiver",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.6.1",
+    "express": "^4.22.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
