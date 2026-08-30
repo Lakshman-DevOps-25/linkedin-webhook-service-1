@@ -42,4 +42,8 @@ router.get(
   testLinkedInData
 );
 
+console.log("Before calling post /webhook-test");
+router.post("/webhook-test", testWebhook);
+console.log("After calling post /webhook-test");
+
 module.exports = router;
