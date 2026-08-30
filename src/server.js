@@ -1,16 +1,22 @@
 require("dotenv").config();
 
 const express = require("express");
+const mongoose = require("mongoose");
+
 const linkedinRouter = require("./routes/linkedin");
 
 const app = express();
 
 const PORT = process.env.PORT || 5000;
 
-// --------------------------------------------------
-// Health check
-// --------------------------------------------------
+/*
+ * Middleware
+ */
+app.use(express.json());
 
+/*
+ * Health check
+ */
 app.get("/health", (req, res) => {
   res.status(200).json({
     status: "ok",
@@ -19,49 +25,61 @@ app.get("/health", (req, res) => {
   });
 });
 
-// --------------------------------------------------
-// LinkedIn webhook routes
-// --------------------------------------------------
+/*
+ * LinkedIn routes
+ */
+app.use(
+  "/api/v1/linkedin",
+  linkedinRouter
+);
 
-app.use("/api/v1/linkedin", linkedinRouter);
-
-// --------------------------------------------------
-// 404 handler
-// --------------------------------------------------
-
+/*
+ * 404 handler
+ */
 app.use((req, res) => {
   res.status(404).json({
+    success: false,
     error: "Route not found",
-    method: req.method,
     path: req.originalUrl
   });
 });
 
-// --------------------------------------------------
-// Global error handler
-// --------------------------------------------------
+/*
+ * MongoDB connection
+ */
+mongoose
+  .connect(process.env.MONGODB_URI)
+  .then(() => {
 
-app.use((err, req, res, next) => {
-  console.error("GLOBAL ERROR");
-  console.error(err);
+    console.log("========================================");
+    console.log("MongoDB connected");
+    console.log("========================================");
 
-  res.status(500).json({
-    error: "Internal server error"
+    app.listen(PORT, () => {
+
+      console.log("========================================");
+      console.log("LinkedIn Webhook Service");
+      console.log("========================================");
+      console.log(`Server running on port ${PORT}`);
+      console.log(
+        `Health: http://localhost:${PORT}/health`
+      );
+      console.log(
+        `Webhook: http://localhost:${PORT}/api/v1/linkedin/webhook`
+      );
+      console.log("========================================");
+
+    });
+  })
+  .catch((error) => {
+
+    console.error(
+      "MongoDB connection failed:"
+    );
+
+    console.error(
+      error.message
+    );
+
+    process.exit(1);
   });
-});
-
-// --------------------------------------------------
-// Start server
-// --------------------------------------------------
-
-app.listen(PORT, () => {
-  console.log("========================================");
-  console.log("LinkedIn Webhook Service");
-  console.log("========================================");
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Health: /health`);
-  console.log(
-    `Webhook: /api/v1/linkedin/webhook`
-  );
-  console.log("========================================");
-});

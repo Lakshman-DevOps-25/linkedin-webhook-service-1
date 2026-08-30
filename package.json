@@ -1,20 +1,19 @@
 {
   "name": "linkedin-webhook-service",
   "version": "1.0.0",
-  "description": "LinkedIn Webhook validation and event receiver",
+  "description": "LinkedIn webhook, organization posts and comments archiver",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js"
   },
   "dependencies": {
-    "dotenv": "^16.6.1",
-    "express": "^4.22.2"
+    "axios": "^1.11.0",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "mongoose": "^8.18.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
+    "nodemon": "^3.1.10"
+  }
 }
