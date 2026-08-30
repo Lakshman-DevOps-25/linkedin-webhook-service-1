@@ -15,10 +15,13 @@ const router = express.Router();
  *
  * GET /api/v1/linkedin/webhook?challengeCode=xxxxx
  */
+
+console.log("Before calling GET /webhook");
 router.get(
   "/webhook",
   validateWebhook
 );
+console.log("After calling GET /webhook");
 
 /*
  * LinkedIn webhook events
@@ -27,11 +30,12 @@ router.get(
  *
  * POST /api/v1/linkedin/webhook
  */
+console.log("Before calling post /webhook");
 router.post(
   "/webhook",
   receiveWebhook
 );
-
+console.log("After calling post /webhook");
 
 router.get(
   "/test-data",
