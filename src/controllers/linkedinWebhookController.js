@@ -15,12 +15,23 @@ const LINKEDIN_VERSION = "202608";
 |--------------------------------------------------------------------------
 */
 const getLinkedInHeaders = () => {
+
   return {
-    Authorization: `Bearer ${process.env.LINKEDIN_ACCESS_TOKEN}`,
-    "LinkedIn-Version": LINKEDIN_VERSION,
-    "X-Restli-Protocol-Version": "2.0.0",
-    "Content-Type": "application/json"
+
+    Authorization:
+      `Bearer ${process.env.LINKEDIN_ACCESS_TOKEN}`,
+
+    "LinkedIn-Version":
+      "202608",
+
+    "X-Restli-Protocol-Version":
+      "2.0.0",
+
+    "Content-Type":
+      "application/json"
+
   };
+
 };
 
 /*
