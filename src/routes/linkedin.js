@@ -3,7 +3,8 @@ const express = require("express");
 const {
   validateWebhook,
   receiveWebhook,
-  testLinkedInData
+  testLinkedInData,
+  testWebhook
 } = require("../controllers/linkedinWebhookController");
 
 const router = express.Router();
