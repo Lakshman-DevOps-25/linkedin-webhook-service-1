@@ -718,7 +718,7 @@ const processLinkedInData =
      * Get organization ID automatically.
      */
 
-    const {organizationId, organizationUrn} = await getOrganizationId();
+    // const {organizationId, organizationUrn} = await getOrganizationId();
 
     const notification = req.body?.notifications?.[0];
 
