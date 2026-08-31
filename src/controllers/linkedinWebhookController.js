@@ -339,6 +339,7 @@ const saveOrganization = async (organization, organizationId, organizationUrn) =
 | 6. Get Organization Posts
 |--------------------------------------------------------------------------
 */
+/*
 const getPosts = async (organizationUrn) => {
   console.log("");
   console.log("STEP 3: Getting organization posts...");
@@ -357,6 +358,63 @@ const getPosts = async (organizationUrn) => {
   const posts = response.data?.elements || [];
   console.log("Posts received:",posts.length);
   return posts;
+};
+*/
+
+const getPosts = async (organizationUrn) => {
+
+  console.log("");
+  console.log("========================================");
+  console.log("STEP 3: Getting organization posts...");
+  console.log("========================================");
+
+  console.log(
+    "Organization URN:",
+    organizationUrn
+  );
+
+  try {
+
+    const response = await axios.get(
+      `${LINKEDIN_API}/rest/posts`,
+      {
+        params: {
+          q: "author",
+          author: organizationUrn,
+          count: 100,
+          sortBy: "CREATED"
+        },
+
+        headers: {
+          ...getLinkedInHeaders(),
+          "X-RestLi-Method": "FINDER"
+        }
+      }
+    );
+
+    const posts =
+      response.data?.elements || [];
+
+    console.log(
+      "Posts received:",
+      posts.length
+    );
+
+    return posts;
+
+  } catch (error) {
+
+    console.error(
+      "GET POSTS ERROR:",
+      JSON.stringify(
+        error.response?.data,
+        null,
+        2
+      )
+    );
+
+    throw error;
+  }
 };
 
 /*
