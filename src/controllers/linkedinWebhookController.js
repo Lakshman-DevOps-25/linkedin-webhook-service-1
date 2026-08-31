@@ -720,6 +720,20 @@ const processLinkedInData =
 
     const {organizationId, organizationUrn} = await getOrganizationId();
 
+    const notification = req.body?.notifications?.[0];
+
+    const organizationUrn = notification?.organizationalEntity;
+
+    if (!organizationUrn) {
+        throw new Error("organizationalEntity missing from webhook");
+    }
+
+    const organizationId = organizationUrn.split(":").pop();
+
+    console.log("Organization URN:", organizationUrn);
+
+    console.log("Organization ID:", organizationId);
+
     /*
      * STEP 2
      *
