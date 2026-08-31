@@ -343,7 +343,7 @@ const getOrganizationId = async () => {
     // API URL
     // ------------------------------------
 
-    const apiUrl = `${process.env.LINKEDIN_API}/organizationAcls`;
+    const apiUrl = `${LINKEDIN_API}/organizationAcls`;
     console.log("LinkedIn organizationAcls URL:",apiUrl);
 
 
