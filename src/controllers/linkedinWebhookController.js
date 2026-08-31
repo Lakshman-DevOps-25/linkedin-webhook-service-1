@@ -318,132 +318,125 @@ const getOrganizationId = async () => {
 
 const getOrganizationId = async () => {
 
+  console.log("");
+  console.log("========================================");
   console.log("STEP 1: Getting organization access...");
+  console.log("========================================");
+
 
   try {
-
     const token = process.env.LINKEDIN_ACCESS_TOKEN?.trim();
 
-    console.log("LinkedIn token exists:", !!token);
+    // ------------------------------------
+    // TOKEN CHECK
+    // ------------------------------------
 
-    console.log("LinkedIn token length:", token?.length);
+    if (!token) {
+      throw new Error("LINKEDIN_ACCESS_TOKEN is missing from environment variables");
+    }
 
-    console.log("LinkedIn token prefix:", token ? token.substring(0, 8) + "..." : "MISSING");
+    console.log("LinkedIn token exists:",true);
+    console.log("LinkedIn token length:",token.length);
+    console.log("LinkedIn token prefix:",token.substring(0, 8) + "...");
+
+    // ------------------------------------
+    // API URL
+    // ------------------------------------
+
+    const apiUrl = `${process.env.LINKEDIN_API}/organizationAcls`;
+    console.log("LinkedIn organizationAcls URL:",apiUrl);
+
+
+    // ------------------------------------
+    // API CALL
+    // ------------------------------------
 
     const response = await axios.get(
-      `${LINKEDIN_API}/organizationAcls`,
+      apiUrl,
       {
         params: {
           q: "roleAssignee",
           role: "ADMINISTRATOR",
           state: "APPROVED"
         },
-
-        headers: getLinkedInHeaders(),
-
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "X-Restli-Protocol-Version": "2.0.0",
+          "LinkedIn-Version": "202608",
+          "Content-Type": "application/json"
+        },
         validateStatus: () => true
       }
     );
 
-    console.log(
-      "LinkedIn organizationAcls status:",
-      response.status
-    );
+    console.log("LinkedIn organizationAcls status:",response.status);
+    console.log("LinkedIn organizationAcls response:",JSON.stringify(response.data,null,2));
 
-    console.log(
-      "LinkedIn organizationAcls response:",
-      JSON.stringify(
-        response.data,
-        null,
-        2
-      )
-    );
+    // ------------------------------------
+    // ERROR
+    // ------------------------------------
 
     if (response.status >= 400) {
-
-      throw new Error(
-        `organizationAcls failed with HTTP ${response.status}: ` +
-        JSON.stringify(response.data)
-      );
-
+      throw new Error(`organizationAcls failed with HTTP ${response.status}: ` + JSON.stringify(response.data));
     }
 
-    const elements =
-      response.data?.elements || [];
+    // ------------------------------------
+    // RESPONSE
+    // ------------------------------------
+
+    const elements = response.data?.elements || [];
 
     if (!elements.length) {
-
-      throw new Error(
-        "No approved LinkedIn organizations found for this user."
-      );
-
+      throw new Error("No approved LinkedIn organizations found for this user.");
     }
+    console.log("Organizations found:",elements.length);
 
-    const organization =
-      elements[0];
+    // ------------------------------------
+    // FIND ADMIN ORGANIZATION
+    // ------------------------------------
 
-    console.log(
-      "Organization ACL:",
-      JSON.stringify(
-        organization,
-        null,
-        2
-      )
-    );
+    const organization = elements.find(element => element.role === "ADMINISTRATOR" && element.state ==="APPROVED") || elements[0];
+    console.log("Organization ACL:",JSON.stringify(organization,null,2));
 
-    /*
-     * Depending on the response, organization URN
-     * can be available in organization field.
-     */
-    const organizationUrn =
-      organization.organization ||
-      organization.organizationalEntity;
+    // ------------------------------------
+    // GET ORGANIZATION URN
+    // ------------------------------------
+
+    const organizationUrn = organization.organization || organization.organizationalTarget || organization.organizationTarget;
 
     if (!organizationUrn) {
-
-      throw new Error(
-        "Organization URN not found in organizationAcls response."
-      );
-
+        throw new Error("Organization URN not found in organizationAcls response.");
     }
 
-    const organizationId =
-      organizationUrn.split(":").pop();
 
-    console.log(
-      "Organization ID:",
-      organizationId
-    );
+    // ------------------------------------
+    // ORGANIZATION ID
+    // ------------------------------------
 
-    return {
-      organizationId,
-      organizationUrn
-    };
+    const organizationId = organizationUrn.split(":").pop();
+    console.log("Organization URN:",organizationUrn);
+    console.log("Organization ID:",organizationId);
+    return {organizationId,organizationUrn};
 
   } catch (error) {
 
+    console.error("");
+    console.error("========================================");
+    console.error("getOrganizationId() FAILED");
+    console.error("========================================");
     console.error(
-      "getOrganizationId() failed:"
-    );
-
-    console.error(
-      error.response?.status
-    );
-
-    console.error(
-      JSON.stringify(
-        error.response?.data,
-        null,
-        2
-      )
-    );
-
-    console.error(
+      "Error message:",
       error.message
     );
 
+    if (error.response) {
+      console.error("HTTP status:",error.response.status);
+      console.error("LinkedIn response:",JSON.stringify(error.response.data,null,2));
+    }
+    console.error("========================================");
     throw error;
   }
+
 };
 
 /*
