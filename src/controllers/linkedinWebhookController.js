@@ -15,12 +15,23 @@ const LINKEDIN_VERSION = "202608";
 |--------------------------------------------------------------------------
 */
 const getLinkedInHeaders = () => {
+
   return {
-    Authorization: `Bearer ${process.env.LINKEDIN_ACCESS_TOKEN}`,
-    "LinkedIn-Version": LINKEDIN_VERSION,
-    "X-Restli-Protocol-Version": "2.0.0",
-    "Content-Type": "application/json"
+
+    Authorization:
+      `Bearer ${process.env.LINKEDIN_ACCESS_TOKEN}`,
+
+    "LinkedIn-Version":
+      "202608",
+
+    "X-Restli-Protocol-Version":
+      "2.0.0",
+
+    "Content-Type":
+      "application/json"
+
   };
+
 };
 
 /*
@@ -177,112 +188,251 @@ const receiveWebhook = async (req, res) => {
 |
 |--------------------------------------------------------------------------
 */
-
+/*
 const getOrganizationId = async () => {
-  console.log("");
+
   console.log("STEP 1: Getting organization access...");
 
-  const response = await axios.get(
-    `${LINKEDIN_API}/organizationAcls`,
-    {
-      params: {
-        q: "roleAssignee",
-        role: "ADMINISTRATOR",
-        state: "APPROVED"
-      },
+  try {
 
-      headers: getLinkedInHeaders()
-    }
-  );
+    const response = await axios.get(
+      `${LINKEDIN_API}/organizationAcls`,
+      {
+        params: {
+          q: "roleAssignee",
+          role: "ADMINISTRATOR",
+          state: "APPROVED"
+        },
 
+        headers: getLinkedInHeaders(),
 
-  const elements = response.data?.elements || [];
-
-
-  console.log("Organization ACL count:", elements.length);
-
-
-  if (!elements.length) {
-    throw new Error(
-      "No approved organization found for this LinkedIn user"
+        validateStatus: () => true
+      }
     );
-  }
 
+    console.log(
+      "LinkedIn organizationAcls status:",
+      response.status
+    );
 
-  /*
-   * LinkedIn returns:
-   *
-   * organization:
-   * urn:li:organization:9661
-   */
-
-  const organizations = 
-      elements.filter(
-        item =>
-          item.organization
+    console.log(
+      "LinkedIn organizationAcls response:",
+      JSON.stringify(
+        response.data,
+        null,
+        2
       )
-      .map(item => ({
-
-        organizationUrn:
-          item.organization,
-
-        organizationId:
-          item.organization
-            .split(":")
-            .pop(),
-
-        role:
-          item.role,
-
-        state:
-          item.state
-
-      }));
-
-
-  console.log("Organizations:", organizations);
-
-
-  /*
-   * Remove duplicate organizations.
-   */
-
-  const uniqueOrganizations =
-    Array.from(
-      new Map(
-        organizations.map(
-          item => [
-            item.organizationId,
-            item
-          ]
-        )
-      ).values()
     );
 
+    if (response.status >= 400) {
 
-  console.log("Unique organizations:", uniqueOrganizations);
+      throw new Error(
+        `organizationAcls failed with HTTP ${response.status}: ` +
+        JSON.stringify(response.data)
+      );
 
-  /*
-   * For this minimal implementation,
-   * process the first approved organization.
-   *
-   * If your user manages multiple companies,
-   * the loop can later be changed to process all.
-   */
+    }
 
-  const organization = uniqueOrganizations[0];
+    const elements =
+      response.data?.elements || [];
 
-  if (!organization) {
-    throw new Error("Unable to determine organization ID");
+    if (!elements.length) {
+
+      throw new Error(
+        "No approved LinkedIn organizations found for this user."
+      );
+
+    }
+
+    const organization =
+      elements[0];
+
+    console.log(
+      "Organization ACL:",
+      JSON.stringify(
+        organization,
+        null,
+        2
+      )
+    );
+
+    /*
+     * Depending on the response, organization URN
+     * can be available in organization field.
+     
+    const organizationUrn =
+      organization.organization ||
+      organization.organizationalEntity;
+
+    if (!organizationUrn) {
+
+      throw new Error(
+        "Organization URN not found in organizationAcls response."
+      );
+
+    }
+
+    const organizationId =
+      organizationUrn.split(":").pop();
+
+    console.log(
+      "Organization ID:",
+      organizationId
+    );
+
+    return {
+      organizationId,
+      organizationUrn
+    };
+
+  } catch (error) {
+
+    console.error(
+      "getOrganizationId() failed:"
+    );
+
+    console.error(
+      error.response?.status
+    );
+
+    console.error(
+      JSON.stringify(
+        error.response?.data,
+        null,
+        2
+      )
+    );
+
+    console.error(
+      error.message
+    );
+
+    throw error;
   }
-
-  console.log("Organization ID:", organization.organizationId);
-
-  console.log("Organization URN:", organization.organizationUrn);
-
-  return organization;
 };
+*/
 
+const getOrganizationId = async () => {
+
+  console.log("STEP 1: Getting organization access...");
+
+  try {
+
+    const response = await axios.get(
+      `${LINKEDIN_API}/organizationAcls`,
+      {
+        params: {
+          q: "roleAssignee",
+          role: "ADMINISTRATOR",
+          state: "APPROVED"
+        },
+
+        headers: getLinkedInHeaders(),
+
+        validateStatus: () => true
+      }
+    );
+
+    console.log(
+      "LinkedIn organizationAcls status:",
+      response.status
+    );
+
+    console.log(
+      "LinkedIn organizationAcls response:",
+      JSON.stringify(
+        response.data,
+        null,
+        2
+      )
+    );
+
+    if (response.status >= 400) {
+
+      throw new Error(
+        `organizationAcls failed with HTTP ${response.status}: ` +
+        JSON.stringify(response.data)
+      );
+
+    }
+
+    const elements =
+      response.data?.elements || [];
+
+    if (!elements.length) {
+
+      throw new Error(
+        "No approved LinkedIn organizations found for this user."
+      );
+
+    }
+
+    const organization =
+      elements[0];
+
+    console.log(
+      "Organization ACL:",
+      JSON.stringify(
+        organization,
+        null,
+        2
+      )
+    );
+
+    /*
+     * Depending on the response, organization URN
+     * can be available in organization field.
+     */
+    const organizationUrn =
+      organization.organization ||
+      organization.organizationalEntity;
+
+    if (!organizationUrn) {
+
+      throw new Error(
+        "Organization URN not found in organizationAcls response."
+      );
+
+    }
+
+    const organizationId =
+      organizationUrn.split(":").pop();
+
+    console.log(
+      "Organization ID:",
+      organizationId
+    );
+
+    return {
+      organizationId,
+      organizationUrn
+    };
+
+  } catch (error) {
+
+    console.error(
+      "getOrganizationId() failed:"
+    );
+
+    console.error(
+      error.response?.status
+    );
+
+    console.error(
+      JSON.stringify(
+        error.response?.data,
+        null,
+        2
+      )
+    );
+
+    console.error(
+      error.message
+    );
+
+    throw error;
+  }
+};
 
 /*
 |--------------------------------------------------------------------------
@@ -368,13 +518,9 @@ const getPosts = async (organizationUrn) => {
   console.log("STEP 3: Getting organization posts...");
   console.log("========================================");
 
-  console.log(
-    "Organization URN:",
-    organizationUrn
-  );
+  console.log("Organization URN:", organizationUrn);
 
   try {
-
     const response = await axios.get(
       `${LINKEDIN_API}/rest/posts`,
       {
@@ -392,27 +538,14 @@ const getPosts = async (organizationUrn) => {
       }
     );
 
-    const posts =
-      response.data?.elements || [];
+    const posts = response.data?.elements || [];
 
-    console.log(
-      "Posts received:",
-      posts.length
-    );
+    console.log("Posts received:", posts.length);
 
     return posts;
 
   } catch (error) {
-
-    console.error(
-      "GET POSTS ERROR:",
-      JSON.stringify(
-        error.response?.data,
-        null,
-        2
-      )
-    );
-
+    console.error("GET POSTS ERROR:", JSON.stringify(error.response?.data, null, 2));
     throw error;
   }
 };
@@ -710,10 +843,39 @@ const processLinkedInData =
 
 };
 
+
+const testWebhook = async (req, res) => {
+
+  console.log("");
+  console.log("========================================");
+  console.log("TEST WEBHOOK RECEIVED");
+  console.log("========================================");
+
+  console.log("Method:", req.method);
+
+  console.log(
+    "Headers:",
+    JSON.stringify(req.headers, null, 2)
+  );
+
+  console.log(
+    "Body:",
+    JSON.stringify(req.body, null, 2)
+  );
+
+  console.log("========================================");
+
+  return res.status(200).json({
+    success: true,
+    message: "Test webhook received successfully",
+    received: true
+  });
+};
+
 /*
 |--------------------------------------------------------------------------
 | Exports
 |--------------------------------------------------------------------------
 */
 
-module.exports = {validateWebhook, receiveWebhook, testLinkedInData};
+module.exports = {validateWebhook, receiveWebhook, testLinkedInData, testWebhook};

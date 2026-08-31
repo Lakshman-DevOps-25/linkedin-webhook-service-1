@@ -35,11 +35,12 @@ app.get("/health", (req, res) => {
 // LINKEDIN ROUTES
 // ========================================
 
+console.log("Before calling linkedinRoutes");
 app.use(
   "/api/v1/linkedin",
   linkedinRoutes
 );
-
+console.log("After calling linkedinRoutes");
 
 // ========================================
 // 404 HANDLER

@@ -2,7 +2,9 @@ const express = require("express");
 
 const {
   validateWebhook,
-  receiveWebhook
+  receiveWebhook,
+  testLinkedInData,
+  testWebhook
 } = require("../controllers/linkedinWebhookController");
 
 const router = express.Router();
@@ -14,10 +16,13 @@ const router = express.Router();
  *
  * GET /api/v1/linkedin/webhook?challengeCode=xxxxx
  */
+
+console.log("Before calling GET /webhook");
 router.get(
   "/webhook",
   validateWebhook
 );
+console.log("After calling GET /webhook");
 
 /*
  * LinkedIn webhook events
@@ -26,15 +31,20 @@ router.get(
  *
  * POST /api/v1/linkedin/webhook
  */
+console.log("Before calling post /webhook");
 router.post(
   "/webhook",
   receiveWebhook
 );
-
+console.log("After calling post /webhook");
 
 router.get(
   "/test-data",
   testLinkedInData
 );
+
+console.log("Before calling post /webhook-test");
+router.post("/webhook-test", testWebhook);
+console.log("After calling post /webhook-test");
 
 module.exports = router;
