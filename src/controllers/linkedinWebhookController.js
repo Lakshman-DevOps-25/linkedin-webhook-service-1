@@ -16,22 +16,26 @@ const LINKEDIN_VERSION = "202608";
 */
 const getLinkedInHeaders = () => {
 
+  const token = process.env.LINKEDIN_ACCESS_TOKEN;
+
+  if (!token) {
+    throw new Error(
+      "LINKEDIN_ACCESS_TOKEN is missing"
+    );
+  }
+
   return {
-
-    Authorization:
-      `Bearer ${process.env.LINKEDIN_ACCESS_TOKEN}`,
-
-    "LinkedIn-Version":
-      "202608",
+    Authorization: `Bearer ${token.trim()}`,
 
     "X-Restli-Protocol-Version":
       "2.0.0",
 
+    "LinkedIn-Version":
+      "202608",
+
     "Content-Type":
       "application/json"
-
   };
-
 };
 
 /*
@@ -317,6 +321,14 @@ const getOrganizationId = async () => {
   console.log("STEP 1: Getting organization access...");
 
   try {
+
+    const token = process.env.LINKEDIN_ACCESS_TOKEN?.trim();
+
+    console.log("LinkedIn token exists:", !!token);
+
+    console.log("LinkedIn token length:", token?.length);
+
+    console.log("LinkedIn token prefix:", token ? token.substring(0, 8) + "..." : "MISSING");
 
     const response = await axios.get(
       `${LINKEDIN_API}/organizationAcls`,
