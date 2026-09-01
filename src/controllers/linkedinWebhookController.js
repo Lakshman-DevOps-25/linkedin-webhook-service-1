@@ -60,6 +60,8 @@ const validateWebhook = (req, res) => {
     console.log("========================================");
     console.log( "Query:", req.query);
 
+    console.log("LINKEDIN_CLIENT_SECRET :", process.env.LINKEDIN_CLIENT_SECRET);
+
     const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
 
     if (!clientSecret) {
@@ -81,39 +83,41 @@ const validateWebhook = (req, res) => {
      * Normalize it in case Express receives an array.
      */
 
-    const rawChallengeCode = req.query.challengeCode;
-    const challengeCode = Array.isArray(rawChallengeCode) ? rawChallengeCode[0] : rawChallengeCode;
+    // const rawChallengeCode = req.query.challengeCode;
+    // const challengeCode = Array.isArray(rawChallengeCode) ? rawChallengeCode[0] : rawChallengeCode;
 
-    if (!challengeCode) {
-      console.error("challengeCode is missing");
-      return res.status(400).json({
-        success: false,
-        error: "Missing challengeCode"
-      });
-    }
-    console.log("challengeCode:", challengeCode);
+    // if (!challengeCode) {
+    //   console.error("challengeCode is missing");
+    //   return res.status(400).json({
+    //     success: false,
+    //     error: "Missing challengeCode"
+    //   });
+    // }
+    // console.log("challengeCode:", challengeCode);
 
-    /*
-     * Generate HMAC SHA256.
-     */
-    const challengeResponse = crypto.createHmac("sha256",clientSecret).update(String(challengeCode),"utf8").digest("hex");
+    // /*
+    //  * Generate HMAC SHA256.
+    //  */
+    // const challengeResponse = crypto.createHmac("sha256",clientSecret).update(String(challengeCode),"utf8").digest("hex");
 
-    console.log("challengeResponse:",challengeResponse);
-    console.log("Returning HTTP 200");
-    console.log("========================================");
+    // console.log("challengeResponse:",challengeResponse);
+    // console.log("Returning HTTP 200");
+    // console.log("========================================");
 
-    /*
-     * IMPORTANT:
-     *
-     * Do NOT call LinkedIn organization/posts/comments
-     * APIs here.
-     *
-     * This request must finish quickly.
-     */
-    return res.status(200).json({
-      challengeCode,
-      challengeResponse
-    });
+    // /*
+    //  * IMPORTANT:
+    //  *
+    //  * Do NOT call LinkedIn organization/posts/comments
+    //  * APIs here.
+    //  *
+    //  * This request must finish quickly.
+    //  */
+    // return res.status(200).json({
+    //   challengeCode,
+    //   challengeResponse
+    // });
+
+    return true;
   } catch (error) {
     console.error("Webhook validation error:",error.message);
 
@@ -140,7 +144,7 @@ const receiveWebhook = async (req, res) => {
     console.log("LINKEDIN WEBHOOK EVENT RECEIVED");
     console.log("========================================");
 
-    console.log(JSON.stringify(req.body, null,2));
+    console.log("req.body data: ", JSON.stringify(req.body, null,2));
 
     /*
      * IMPORTANT:
