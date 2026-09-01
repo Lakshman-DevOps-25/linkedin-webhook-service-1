@@ -75,13 +75,13 @@ mongoose
       console.log("========================================");
       console.log(`Port: ${PORT}`);
       console.log(
-        `Health: http://localhost:${PORT}/health`
+        `Health: https://linkedin-webhook-service-1.onrender.com/health`
       );
       console.log(
-        `Webhook: http://localhost:${PORT}/api/v1/linkedin/webhook`
+        `Webhook: https://linkedin-webhook-service-1.onrender.com/api/v1/linkedin/webhook`
       );
       console.log(
-        `Test: http://localhost:${PORT}/api/v1/linkedin/webhook-test`
+        `Test: https://linkedin-webhook-service-1.onrender.com/api/v1/linkedin/webhook-test`
       );
       console.log("========================================");
 
