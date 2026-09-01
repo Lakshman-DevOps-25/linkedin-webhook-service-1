@@ -140,7 +140,7 @@ const validateWebhook = (req, res) => {
 // const crypto = require("crypto");
 // const LinkedInData = require("../models/LinkedInData");
 
-const receiveWebhook = (req, res) => {
+const receiveWebhook = async (req, res) => {
   const startTime = Date.now();
 
   console.log("");
