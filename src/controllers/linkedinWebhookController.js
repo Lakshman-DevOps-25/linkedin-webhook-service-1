@@ -137,49 +137,585 @@ const validateWebhook = (req, res) => {
 |
 |--------------------------------------------------------------------------
 */
-const receiveWebhook = async (req, res) => {
+// const crypto = require("crypto");
+// const LinkedInData = require("../models/LinkedInData");
+
+exports.receiveWebhook = async (req, res) => {
+  const startTime = Date.now();
+
+  console.log("");
+  console.log("========================================");
+  console.log("LINKEDIN WEBHOOK EVENT RECEIVED");
+  console.log("========================================");
+
   try {
-    console.log("");
-    console.log("========================================");
-    console.log("LINKEDIN WEBHOOK EVENT RECEIVED");
-    console.log("========================================");
+    // =========================================================
+    // 1. REQUEST INFORMATION
+    // =========================================================
 
-    console.log("req.body data: ", JSON.stringify(req.body, null,2));
+    console.log("Timestamp:", new Date().toISOString());
+    console.log("Method:", req.method);
+    console.log("URL:", req.originalUrl);
+    console.log("IP:", req.ip);
 
-    /*
-     * IMPORTANT:
-     *
-     * Acknowledge LinkedIn immediately.
-     *
-     * Do not make LinkedIn wait for:
-     *
-     * organizationAcls
-     * posts
-     * comments
-     * MongoDB
-     */
-    res.sendStatus(200);
+    console.log("----------------------------------------");
+    console.log("HEADERS");
+    console.log("----------------------------------------");
 
-    /*
-     * Start processing after response.
-     */
+    console.log("Content-Type:", req.headers["content-type"]);
+    console.log("X-LI-Signature:", req.headers["x-li-signature"]);
+    console.log("User-Agent:", req.headers["user-agent"]);
 
-    processLinkedInData().catch((error) => {
-        console.error("LinkedIn background processing failed:");
-        console.error(error.response?.data || error.message);
+
+    // =========================================================
+    // 2. GET RAW BODY
+    // =========================================================
+
+    if (!req.body) {
+      console.error("ERROR: Request body is missing");
+
+      return res.status(400).json({
+        success: false,
+        message: "Request body is missing"
       });
+    }
+
+    let rawBody;
+
+    if (Buffer.isBuffer(req.body)) {
+      rawBody = req.body;
+    } else if (typeof req.body === "string") {
+      rawBody = Buffer.from(req.body, "utf8");
+    } else {
+      console.error(
+        "ERROR: Request body is not a Buffer or string"
+      );
+
+      console.error(
+        "Body type:",
+        typeof req.body
+      );
+
+      return res.status(400).json({
+        success: false,
+        message: "Invalid raw request body"
+      });
+    }
+
+
+    console.log("----------------------------------------");
+    console.log("RAW BODY");
+    console.log("----------------------------------------");
+
+    console.log(rawBody.toString("utf8"));
+
+
+    // =========================================================
+    // 3. GET LINKEDIN SIGNATURE
+    // =========================================================
+
+    const receivedSignature =
+      req.headers["x-li-signature"];
+
+    if (!receivedSignature) {
+      console.error(
+        "ERROR: X-LI-Signature header is missing"
+      );
+
+      return res.status(401).json({
+        success: false,
+        message: "Missing X-LI-Signature header"
+      });
+    }
+
+
+    // =========================================================
+    // 4. GET CLIENT SECRET
+    // =========================================================
+
+    const clientSecret =
+      process.env.LINKEDIN_CLIENT_SECRET;
+
+    if (!clientSecret) {
+      console.error(
+        "ERROR: LINKEDIN_CLIENT_SECRET is not configured"
+      );
+
+      return res.status(500).json({
+        success: false,
+        message: "LinkedIn client secret is not configured"
+      });
+    }
+
+
+    // =========================================================
+    // 5. CALCULATE EXPECTED SIGNATURE
+    // =========================================================
+
+    const expectedSignature =
+      crypto
+        .createHmac("sha256", clientSecret)
+        .update(rawBody)
+        .digest("hex");
+
+
+    console.log("----------------------------------------");
+    console.log("SIGNATURE VALIDATION");
+    console.log("----------------------------------------");
+
+    console.log(
+      "Received signature:",
+      receivedSignature
+    );
+
+    console.log(
+      "Expected signature:",
+      expectedSignature
+    );
+
+
+    // =========================================================
+    // 6. NORMALIZE RECEIVED SIGNATURE
+    // =========================================================
+
+    let normalizedSignature =
+      receivedSignature.trim();
+
+    if (
+      normalizedSignature
+        .toLowerCase()
+        .startsWith("sha256=")
+    ) {
+      normalizedSignature =
+        normalizedSignature
+          .substring(7)
+          .trim();
+    }
+
+
+    // =========================================================
+    // 7. COMPARE SIGNATURES
+    // =========================================================
+
+    let signatureValid = false;
+
+    try {
+      const expectedBuffer =
+        Buffer.from(
+          expectedSignature,
+          "hex"
+        );
+
+      const receivedBuffer =
+        Buffer.from(
+          normalizedSignature,
+          "hex"
+        );
+
+      if (
+        expectedBuffer.length ===
+        receivedBuffer.length
+      ) {
+        signatureValid =
+          crypto.timingSafeEqual(
+            expectedBuffer,
+            receivedBuffer
+          );
+      }
+    } catch (signatureError) {
+      console.error(
+        "Signature comparison error:",
+        signatureError
+      );
+
+      signatureValid = false;
+    }
+
+
+    console.log(
+      "Signature valid:",
+      signatureValid
+    );
+
+
+    // =========================================================
+    // 8. REJECT INVALID SIGNATURE
+    // =========================================================
+
+    if (!signatureValid) {
+      console.error("");
+      console.error(
+        "========================================"
+      );
+      console.error(
+        "LINKEDIN SIGNATURE VALIDATION FAILED"
+      );
+      console.error(
+        "========================================"
+      );
+
+      return res.status(401).json({
+        success: false,
+        message: "Invalid LinkedIn webhook signature"
+      });
+    }
+
+
+    console.log(
+      "LinkedIn signature validation SUCCESS"
+    );
+
+
+    // =========================================================
+    // 9. PARSE JSON
+    // =========================================================
+
+    let payload;
+
+    try {
+      payload = JSON.parse(
+        rawBody.toString("utf8")
+      );
+    } catch (parseError) {
+      console.error(
+        "ERROR: Invalid JSON payload"
+      );
+
+      console.error(parseError);
+
+      return res.status(400).json({
+        success: false,
+        message: "Invalid JSON payload"
+      });
+    }
+
+
+    // =========================================================
+    // 10. LOG PAYLOAD
+    // =========================================================
+
+    console.log("----------------------------------------");
+    console.log("PARSED LINKEDIN PAYLOAD");
+    console.log("----------------------------------------");
+
+    console.log(
+      JSON.stringify(
+        payload,
+        null,
+        2
+      )
+    );
+
+
+    // =========================================================
+    // 11. GET EVENT TYPE
+    // =========================================================
+
+    const eventType =
+      payload.type || null;
+
+    console.log(
+      "Event type:",
+      eventType
+    );
+
+
+    // =========================================================
+    // 12. GET NOTIFICATIONS
+    // =========================================================
+
+    const notifications =
+      Array.isArray(payload.notifications)
+        ? payload.notifications
+        : [];
+
+    console.log(
+      "Notification count:",
+      notifications.length
+    );
+
+
+    // =========================================================
+    // 13. PROCESS NOTIFICATIONS
+    // =========================================================
+
+    for (const notification of notifications) {
+
+      console.log("");
+      console.log(
+        "----------------------------------------"
+      );
+
+      console.log(
+        "PROCESSING LINKEDIN NOTIFICATION"
+      );
+
+      console.log(
+        "----------------------------------------"
+      );
+
+      console.log(
+        JSON.stringify(
+          notification,
+          null,
+          2
+        )
+      );
+
+
+      // -------------------------------------------------------
+      // Extract notification ID
+      // -------------------------------------------------------
+
+      const notificationId =
+        notification.notificationId
+          ? String(notification.notificationId)
+          : null;
+
+
+      // -------------------------------------------------------
+      // Extract action
+      // -------------------------------------------------------
+
+      const action =
+        notification.action || null;
+
+
+      console.log(
+        "notificationId:",
+        notificationId
+      );
+
+      console.log(
+        "action:",
+        action
+      );
+
+
+      // -------------------------------------------------------
+      // Determine LinkedIn ID
+      // -------------------------------------------------------
+
+      /*
+       * Prefer an actual LinkedIn entity/post/comment ID
+       * when it is available.
+       *
+       * Otherwise use notificationId temporarily.
+       *
+       * This allows the webhook to be stored even when
+       * LinkedIn sends only a notification identifier.
+       */
+
+      const linkedinId =
+        notification.postId
+          ? String(notification.postId)
+          : notification.commentId
+            ? String(notification.commentId)
+            : notificationId;
+
+
+      if (!linkedinId) {
+
+        console.warn(
+          "WARNING: No LinkedIn ID found in notification"
+        );
+
+        continue;
+      }
+
+
+      // -------------------------------------------------------
+      // Determine data type
+      // -------------------------------------------------------
+
+      let dataType = "post";
+
+      if (notification.commentId) {
+        dataType = "comment";
+      }
+
+
+      // -------------------------------------------------------
+      // Organization information
+      // -------------------------------------------------------
+
+      const organizationId =
+        notification.organizationId
+          ? String(notification.organizationId)
+          : null;
+
+      const organizationUrn =
+        notification.organizationUrn ||
+        null;
+
+
+      // -------------------------------------------------------
+      // Create LinkedInData document
+      // -------------------------------------------------------
+
+      const data = {
+        type: dataType,
+
+        linkedinId: linkedinId,
+
+        organizationId: organizationId,
+
+        organizationUrn: organizationUrn,
+
+        organizationName:
+          notification.organizationName ||
+          null,
+
+        postId:
+          notification.postId
+            ? String(notification.postId)
+            : null,
+
+        author:
+          notification.author ||
+          null,
+
+        text:
+          notification.text ||
+          "",
+
+        createdAtLinkedIn:
+          notification.createdAt
+            ? new Date(notification.createdAt)
+            : null,
+
+        rawData: {
+          eventType: eventType,
+          action: action,
+          notification: notification
+        }
+      };
+
+
+      // -------------------------------------------------------
+      // Save / Update MongoDB
+      // -------------------------------------------------------
+
+      const savedData =
+        await LinkedInData.findOneAndUpdate(
+          {
+            linkedinId: linkedinId
+          },
+          {
+            $set: data
+          },
+          {
+            new: true,
+            upsert: true,
+            setDefaultsOnInsert: true
+          }
+        );
+
+
+      console.log(
+        "LinkedIn data saved successfully"
+      );
+
+      console.log(
+        "MongoDB ID:",
+        savedData._id
+      );
+
+      console.log(
+        "LinkedIn ID:",
+        savedData.linkedinId
+      );
+    }
+
+
+    // =========================================================
+    // 14. PROCESSING TIME
+    // =========================================================
+
+    const processingTime =
+      Date.now() - startTime;
+
+    console.log("");
+    console.log(
+      "Processing time:",
+      processingTime,
+      "ms"
+    );
+
+
+    // =========================================================
+    // 15. RETURN HTTP 200
+    // =========================================================
+
+    console.log(
+      "Returning HTTP 200 to LinkedIn"
+    );
+
+    console.log(
+      "========================================"
+    );
+
+    console.log(
+      "LINKEDIN WEBHOOK PROCESSING COMPLETE"
+    );
+
+    console.log(
+      "========================================"
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "LinkedIn webhook received successfully",
+      eventType: eventType,
+      notificationCount: notifications.length
+    });
+
   } catch (error) {
-    console.error("Webhook receive error:",
+
+    console.error("");
+    console.error(
+      "========================================"
+    );
+
+    console.error(
+      "LINKEDIN WEBHOOK PROCESSING ERROR"
+    );
+
+    console.error(
+      "========================================"
+    );
+
+    console.error(
+      "Error:",
       error.message
     );
 
+    console.error(
+      "Stack:",
+      error.stack
+    );
+
+    console.error(
+      "Processing time:",
+      Date.now() - startTime,
+      "ms"
+    );
+
+    console.error(
+      "========================================"
+    );
+
     /*
-     * Always acknowledge webhook.
+     * Important:
+     *
+     * If an internal error occurs, return 500 so LinkedIn
+     * knows the notification was not successfully processed.
      */
 
-    if (!res.headersSent) {
-      res.sendStatus(200);
-    }
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error while processing LinkedIn webhook"
+    });
   }
 };
 
