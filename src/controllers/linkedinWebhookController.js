@@ -1649,10 +1649,127 @@ const testLinkedInToken = async (req, res) => {
   }
 };
 
+const introspectLinkedInToken = async (req, res) => {
+  console.log("========================================");
+  console.log("LINKEDIN TOKEN INTROSPECTION");
+  console.log("========================================");
+
+  try {
+    const clientId = process.env.LINKEDIN_CLIENT_ID?.trim();
+    const clientSecret = process.env.LINKEDIN_CLIENT_SECRET?.trim();
+    const accessToken = process.env.LINKEDIN_ACCESS_TOKEN?.trim();
+
+    console.log("Client ID exists:", !!clientId);
+    console.log("Client Secret exists:", !!clientSecret);
+    console.log("Access Token exists:", !!accessToken);
+
+    if (!clientId) {
+      return res.status(500).json({
+        success: false,
+        error: "LINKEDIN_CLIENT_ID is missing"
+      });
+    }
+
+    if (!clientSecret) {
+      return res.status(500).json({
+        success: false,
+        error: "LINKEDIN_CLIENT_SECRET is missing"
+      });
+    }
+
+    if (!accessToken) {
+      return res.status(500).json({
+        success: false,
+        error: "LINKEDIN_ACCESS_TOKEN is missing"
+      });
+    }
+
+    // Do NOT log the actual token
+    console.log("Token length:", accessToken.length);
+
+    const tokenFingerprint = crypto
+      .createHash("sha256")
+      .update(accessToken)
+      .digest("hex")
+      .substring(0, 16);
+
+    console.log("Token fingerprint:", tokenFingerprint);
+
+    const params = new URLSearchParams();
+
+    params.append("client_id", clientId);
+    params.append("client_secret", clientSecret);
+    params.append("token", accessToken);
+
+    const response = await axios.post(
+      "https://www.linkedin.com/oauth/v2/introspectToken",
+      params.toString(),
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        }
+      }
+    );
+
+    console.log("========================================");
+    console.log("LINKEDIN TOKEN INTROSPECTION RESULT");
+    console.log("========================================");
+
+    console.log({
+      active: response.data.active,
+      status: response.data.status,
+      client_id: response.data.client_id,
+      auth_type: response.data.auth_type,
+      scope: response.data.scope,
+      created_at: response.data.created_at,
+      authorized_at: response.data.authorized_at,
+      expires_at: response.data.expires_at
+    });
+
+    return res.status(200).json({
+      success: true,
+      tokenFingerprint,
+      introspection: {
+        active: response.data.active,
+        status: response.data.status,
+        client_id: response.data.client_id,
+        auth_type: response.data.auth_type,
+        scope: response.data.scope,
+        created_at: response.data.created_at,
+        authorized_at: response.data.authorized_at,
+        expires_at: response.data.expires_at
+      }
+    });
+
+  } catch (error) {
+    console.error("========================================");
+    console.error("LINKEDIN TOKEN INTROSPECTION FAILED");
+    console.error("========================================");
+
+    if (error.response) {
+      console.error("Status:", error.response.status);
+      console.error("LinkedIn response:", error.response.data);
+
+      return res.status(error.response.status).json({
+        success: false,
+        error: "LinkedIn token introspection failed",
+        linkedin: error.response.data
+      });
+    }
+
+    console.error("Error:", error.message);
+
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
 /*
 |--------------------------------------------------------------------------
 | Exports
 |--------------------------------------------------------------------------
 */
 
-module.exports = {validateWebhook, receiveWebhook, testLinkedInData, testWebhook, testLinkedInToken};
+module.exports = {validateWebhook, receiveWebhook, testLinkedInData, testWebhook, testLinkedInToken, introspectLinkedInToken};

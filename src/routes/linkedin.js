@@ -5,7 +5,8 @@ const {
   receiveWebhook,
   testLinkedInData,
   testWebhook,
-  testLinkedInToken
+  testLinkedInToken,
+  introspectLinkedInToken
 } = require("../controllers/linkedinWebhookController");
 
 const router = express.Router();
@@ -47,6 +48,11 @@ router.get(
 router.get(
   "/linkedin/test-token",
   testLinkedInToken
+);
+
+router.get(
+  "/introspect-token",
+  introspectLinkedInToken
 );
 
 console.log("Before calling post /webhook-test");
