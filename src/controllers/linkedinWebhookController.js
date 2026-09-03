@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const crypto = require("crypto");
 const axios = require("axios");
 
@@ -1067,7 +1069,7 @@ const getPosts = async (organizationUrn) => {
 
   try {
     const response = await axios.get(
-      `${LINKEDIN_API}/rest/posts`,
+      `${LINKEDIN_API}/posts`,
       {
         params: {
           q: "author",
@@ -1248,6 +1250,7 @@ const processLinkedInData =
      * Check access token.
      */
 
+    console.log("Checking LinkedIn access token...", process.env.LINKEDIN_ACCESS_TOKEN);
     if (!process.env.LINKEDIN_ACCESS_TOKEN) {
       throw new Error("LINKEDIN_ACCESS_TOKEN is missing");
     }
