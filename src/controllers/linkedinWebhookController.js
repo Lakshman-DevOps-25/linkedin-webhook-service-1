@@ -1238,7 +1238,7 @@ const saveComment = async (comment, postId, organizationId, organizationUrn, org
 */
 
 const processLinkedInData =
-  async () => {
+  async (req, res) => {
     console.log("");
     console.log("========================================");
     console.log("STARTING LINKEDIN DATA PROCESSING");
@@ -1379,7 +1379,7 @@ const processLinkedInData =
     );
 
 
-    await processLinkedInData();
+    await processLinkedInData(req, res);
 
 
     console.log(
