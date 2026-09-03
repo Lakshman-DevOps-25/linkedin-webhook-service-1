@@ -69,7 +69,7 @@ const getLinkedInHeaders = () => {
     throw new Error("LINKEDIN_ACCESS_TOKEN is missing");
   }
 
-  const checkToken = "AQVa4akHX5xyYxO64BSEiZ57dnqfhLkmFVlgfaT7MXqwgYJB3Rnmo9lufFmydUG-BEMlg8qX75v9m_ajE_eo2WALGPfd9fzFs3o42y4cdePfXgdykufuxD-SwFNBGmk8Z3jhdFBB0yPMdmaY1vGy0wJ7MbpiVOREdwMfNKjogJAnYdpjXwEjRZDj0Wrf7y4ZfWaTBX2kwbOvz2T6Znn85HZt4tOIOFlx1PN77BJK_-RAMsLuAXutel72Ef2ZByPevKPrV7E5GQgaydYjkTO5gNyRuWCyVantKRcuXvTopCOfEpkKa7-wxpPWjlQHl4yTuRyF8RisT6T9tEIeFCuLMDDVJ79ZtQ";
+  const checkToken = "AQX9nMUN9mu0a7o3CWnLJdQ6Jy_1P9vx77t-BZYwDvH5t62Ed4N7Uc_6OCu3NiNxvIIucNRNEXjuZViPPMY_6-JrBYD1FXPEoDdha2ry0BtrlNCwP8IoZUSqYc_YAHiX91qZ5g-Q4HsWfgKPhu6OrPQpky7mgHfd0Nne0mrRyEhPFjuTgV3GA2rPOQIIvRPSQFF57Wpvz-KLkmr5vaDa4AsqNWDegE8ORlP-SGTRkQnh_bdDQE8gVqB_DZXz3ZOF5EpGUUI4dlhFaed9ytUH41xk5Q3cWNAoe7TBAXhXej0cJiKtRRkSa2gIRFwit-w27SX-ZS-32V3pDXsO-wGXlPT7d-jk7g";
 
   console.log("Calculate the SHA-256 fingerprint of the token: ", 
     crypto
