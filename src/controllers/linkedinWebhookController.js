@@ -1,4 +1,4 @@
-require('dotenv').config();
+// require('dotenv').config();
 
 const crypto = require("crypto");
 const axios = require("axios");
@@ -1395,13 +1395,9 @@ const processLinkedInData =
      * Get organization details
      */
 
-    const organization =
-      await getOrganization(organizationId);
+    const organization = await getOrganization(organizationId);
 
-    const organizationName =
-      organization.localizedName ||
-      organization.vanityName ||
-      "";
+    const organizationName = organization.localizedName || organization.vanityName || "";
 
     /*
      * STEP 2
