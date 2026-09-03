@@ -12,16 +12,6 @@ const LinkedInData = require("../models/LinkedInData");
 const LINKEDIN_API = "https://api.linkedin.com/rest";
 const LINKEDIN_VERSION = "202608";
 
-const token = "AQVa4akHX5xyYxO64BSEiZ57dnqfhLkmFVlgfaT7MXqwgYJB3Rnmo9lufFmydUG-BEMlg8qX75v9m_ajE_eo2WALGPfd9fzFs3o42y4cdePfXgdykufuxD-SwFNBGmk8Z3jhdFBB0yPMdmaY1vGy0wJ7MbpiVOREdwMfNKjogJAnYdpjXwEjRZDj0Wrf7y4ZfWaTBX2kwbOvz2T6Znn85HZt4tOIOFlx1PN77BJK_-RAMsLuAXutel72Ef2ZByPevKPrV7E5GQgaydYjkTO5gNyRuWCyVantKRcuXvTopCOfEpkKa7-wxpPWjlQHl4yTuRyF8RisT6T9tEIeFCuLMDDVJ79ZtQ";
-
-console.log("Calculate the SHA-256 fingerprint of the token: ", 
-  crypto
-    .createHash("sha256")
-    .update(token.trim())
-    .digest("hex")
-    .substring(0, 16)
-);
-
 /*
 |--------------------------------------------------------------------------
 | Common LinkedIn Headers
@@ -78,6 +68,16 @@ const getLinkedInHeaders = () => {
   if (!token) {
     throw new Error("LINKEDIN_ACCESS_TOKEN is missing");
   }
+
+  const checkToken = "AQVa4akHX5xyYxO64BSEiZ57dnqfhLkmFVlgfaT7MXqwgYJB3Rnmo9lufFmydUG-BEMlg8qX75v9m_ajE_eo2WALGPfd9fzFs3o42y4cdePfXgdykufuxD-SwFNBGmk8Z3jhdFBB0yPMdmaY1vGy0wJ7MbpiVOREdwMfNKjogJAnYdpjXwEjRZDj0Wrf7y4ZfWaTBX2kwbOvz2T6Znn85HZt4tOIOFlx1PN77BJK_-RAMsLuAXutel72Ef2ZByPevKPrV7E5GQgaydYjkTO5gNyRuWCyVantKRcuXvTopCOfEpkKa7-wxpPWjlQHl4yTuRyF8RisT6T9tEIeFCuLMDDVJ79ZtQ";
+
+  console.log("Calculate the SHA-256 fingerprint of the token: ", 
+    crypto
+      .createHash("sha256")
+      .update(checkToken.trim())
+      .digest("hex")
+      .substring(0, 16)
+  );
 
   return {
     Authorization: `Bearer ${token}`,
