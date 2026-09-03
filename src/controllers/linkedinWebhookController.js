@@ -1394,7 +1394,7 @@ const processLinkedInData =
   };
 
 
-  const testLinkedInData = async (req, res) => {
+  const   testLinkedInData = async (req, res) => {
 
   console.log("");
   console.log("========================================");
@@ -1620,6 +1620,9 @@ const testLinkedInToken = async (req, res) => {
       });
     }
 
+    console.log("Testing LinkedIn access token...");
+    console.log("Token length:", token.length);
+
     const response = await axios.get(
       "https://api.linkedin.com/v2/userinfo",
       {
@@ -1630,13 +1633,21 @@ const testLinkedInToken = async (req, res) => {
       }
     );
 
-    return res.status(response.status).json({
+    console.log("LinkedIn userinfo status:", response.status);
+    console.log(
+      "LinkedIn userinfo response:",
+      JSON.stringify(response.data, null, 2)
+    );
+
+    return res.status(200).json({
       success: response.status >= 200 && response.status < 300,
       linkedinStatus: response.status,
       linkedinResponse: response.data
     });
 
   } catch (error) {
+    console.error("TOKEN TEST ERROR:", error.message);
+
     return res.status(500).json({
       success: false,
       message: error.message
