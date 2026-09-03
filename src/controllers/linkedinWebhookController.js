@@ -1766,10 +1766,79 @@ const introspectLinkedInToken = async (req, res) => {
   }
 };
 
+
+const testLinkedInUserInfo = async (req, res) => {
+  console.log("========================================");
+  console.log("LINKEDIN USERINFO TEST");
+  console.log("========================================");
+
+  try {
+    const token = process.env.LINKEDIN_ACCESS_TOKEN?.trim();
+
+    if (!token) {
+      return res.status(500).json({
+        success: false,
+        error: "LINKEDIN_ACCESS_TOKEN is missing"
+      });
+    }
+
+    const fingerprint = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex")
+      .substring(0, 16);
+
+    console.log("Token fingerprint:", fingerprint);
+
+    const response = await axios.get(
+      "https://api.linkedin.com/v2/userinfo",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    console.log("LinkedIn userinfo status:", response.status);
+    console.log("LinkedIn userinfo:", response.data);
+
+    return res.status(200).json({
+      success: true,
+      tokenFingerprint: fingerprint,
+      linkedinStatus: response.status,
+      userInfo: response.data
+    });
+
+  } catch (error) {
+    console.error("========================================");
+    console.error("LINKEDIN USERINFO FAILED");
+    console.error("========================================");
+
+    console.error("Status:", error.response?.status);
+    console.error("Response:", error.response?.data);
+
+    return res.status(error.response?.status || 500).json({
+      success: false,
+      tokenFingerprint: error.response
+        ? crypto
+            .createHash("sha256")
+            .update(process.env.LINKEDIN_ACCESS_TOKEN.trim())
+            .digest("hex")
+            .substring(0, 16)
+        : undefined,
+      linkedinStatus: error.response?.status,
+      linkedinError: error.response?.data || error.message
+    });
+  }
+};
+
+
 /*
 |--------------------------------------------------------------------------
 | Exports
 |--------------------------------------------------------------------------
 */
 
-module.exports = {validateWebhook, receiveWebhook, testLinkedInData, testWebhook, testLinkedInToken, introspectLinkedInToken};
+module.exports = {validateWebhook, receiveWebhook, testLinkedInData, testWebhook, testLinkedInToken, introspectLinkedInToken,
+  testLinkedInUserInfo
+};
