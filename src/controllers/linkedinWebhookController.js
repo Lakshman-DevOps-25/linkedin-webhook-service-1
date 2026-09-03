@@ -1262,6 +1262,8 @@ const processLinkedInData =
 
     const notification = req.body?.notifications?.[0];
 
+    console.log("Notification received:", JSON.stringify(notification, null, 2));
+    
     const organizationUrn = notification?.organizationalEntity;
 
     if (!organizationUrn) {
