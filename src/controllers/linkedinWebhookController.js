@@ -1609,6 +1609,41 @@ const testWebhook = async (req, res) => {
   });
 };
 
+const testLinkedInToken = async (req, res) => {
+  try {
+    const token = process.env.LINKEDIN_ACCESS_TOKEN?.trim();
+
+    if (!token) {
+      return res.status(500).json({
+        success: false,
+        message: "LINKEDIN_ACCESS_TOKEN is missing"
+      });
+    }
+
+    const response = await axios.get(
+      "https://api.linkedin.com/v2/userinfo",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        validateStatus: () => true
+      }
+    );
+
+    return res.status(response.status).json({
+      success: response.status >= 200 && response.status < 300,
+      linkedinStatus: response.status,
+      linkedinResponse: response.data
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 /*
 |--------------------------------------------------------------------------
 | Exports

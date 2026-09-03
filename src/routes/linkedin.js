@@ -43,6 +43,11 @@ router.get(
   testLinkedInData
 );
 
+router.get(
+  "/linkedin/test-token",
+  testLinkedInToken
+);
+
 console.log("Before calling post /webhook-test");
 router.post("/webhook-test", testWebhook);
 console.log("After calling post /webhook-test");
