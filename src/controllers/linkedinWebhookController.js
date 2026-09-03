@@ -16,6 +16,7 @@ const LINKEDIN_VERSION = "202608";
 | Common LinkedIn Headers
 |--------------------------------------------------------------------------
 */
+/*
 const getLinkedInHeaders = () => {
 
   const token = process.env.LINKEDIN_ACCESS_TOKEN;
@@ -37,6 +38,41 @@ const getLinkedInHeaders = () => {
 
     "Content-Type":
       "application/json"
+  };
+};
+*/
+
+const getLinkedInHeaders = () => {
+  const token = process.env.LINKEDIN_ACCESS_TOKEN?.trim();
+
+  console.log("========================================");
+  console.log("LINKEDIN TOKEN DEBUG");
+  console.log("========================================");
+  console.log("Token exists:", !!token);
+  console.log("Token length:", token ? token.length : 0);
+
+  if (token) {
+    console.log(
+      "Token fingerprint:",
+      crypto
+        .createHash("sha256")
+        .update(token)
+        .digest("hex")
+        .substring(0, 16)
+    );
+  }
+
+  console.log("========================================");
+
+  if (!token) {
+    throw new Error("LINKEDIN_ACCESS_TOKEN is missing");
+  }
+
+  return {
+    Authorization: `Bearer ${token}`,
+    "LinkedIn-Version": "202608",
+    "X-Restli-Protocol-Version": "2.0.0",
+    "Content-Type": "application/json"
   };
 };
 
