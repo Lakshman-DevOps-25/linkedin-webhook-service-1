@@ -1624,16 +1624,6 @@ const testLinkedInToken = async (req, res) => {
   try {
     const token = process.env.LINKEDIN_ACCESS_TOKEN?.trim();
 
-    if (!token) {
-      return res.status(500).json({
-        success: false,
-        message: "LINKEDIN_ACCESS_TOKEN is missing"
-      });
-    }
-
-    console.log("Testing LinkedIn access token...");
-    console.log("Token length:", token.length);
-
     const response = await axios.get(
       "https://api.linkedin.com/v2/userinfo",
       {
@@ -1645,23 +1635,16 @@ const testLinkedInToken = async (req, res) => {
     );
 
     console.log("LinkedIn userinfo status:", response.status);
-    console.log(
-      "LinkedIn userinfo response:",
-      JSON.stringify(response.data, null, 2)
-    );
+    console.log("LinkedIn response:", response.data);
 
     return res.status(200).json({
-      success: response.status >= 200 && response.status < 300,
-      linkedinStatus: response.status,
-      linkedinResponse: response.data
+      status: response.status,
+      data: response.data
     });
 
   } catch (error) {
-    console.error("TOKEN TEST ERROR:", error.message);
-
     return res.status(500).json({
-      success: false,
-      message: error.message
+      error: error.message
     });
   }
 };
