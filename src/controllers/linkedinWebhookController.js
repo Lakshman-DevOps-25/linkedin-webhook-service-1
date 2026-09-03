@@ -1836,6 +1836,65 @@ const testLinkedInUserInfo = async (req, res) => {
 };
 
 
+const testLinkedInMe = async (req, res) => {
+  console.log("========================================");
+  console.log("LINKEDIN /v2/me TEST");
+  console.log("========================================");
+
+  try {
+    const token = process.env.LINKEDIN_ACCESS_TOKEN?.trim();
+
+    const fingerprint = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex")
+      .substring(0, 16);
+
+    console.log("Token fingerprint:", fingerprint);
+
+    const response = await axios.get(
+      "https://api.linkedin.com/v2/me",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    console.log("LinkedIn /v2/me status:", response.status);
+    console.log("LinkedIn /v2/me response:", response.data);
+
+    return res.status(200).json({
+      success: true,
+      tokenFingerprint: fingerprint,
+      linkedinStatus: response.status,
+      data: response.data
+    });
+
+  } catch (error) {
+    console.error("========================================");
+    console.error("LINKEDIN /v2/me FAILED");
+    console.error("========================================");
+
+    console.error("Status:", error.response?.status);
+    console.error("Response:", error.response?.data);
+
+    return res.status(error.response?.status || 500).json({
+      success: false,
+      tokenFingerprint: process.env.LINKEDIN_ACCESS_TOKEN
+        ? crypto
+            .createHash("sha256")
+            .update(process.env.LINKEDIN_ACCESS_TOKEN.trim())
+            .digest("hex")
+            .substring(0, 16)
+        : null,
+      linkedinStatus: error.response?.status,
+      linkedinError: error.response?.data || error.message
+    });
+  }
+};
+
+
 /*
 |--------------------------------------------------------------------------
 | Exports
@@ -1843,5 +1902,5 @@ const testLinkedInUserInfo = async (req, res) => {
 */
 
 module.exports = {validateWebhook, receiveWebhook, testLinkedInData, testWebhook, testLinkedInToken, introspectLinkedInToken,
-  testLinkedInUserInfo
+  testLinkedInUserInfo, testLinkedInMe
 };
