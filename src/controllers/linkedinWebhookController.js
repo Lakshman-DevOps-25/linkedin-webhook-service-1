@@ -1775,6 +1775,9 @@ const testLinkedInUserInfo = async (req, res) => {
   try {
     const token = process.env.LINKEDIN_ACCESS_TOKEN?.trim();
 
+    console.log("Render Client ID:", process.env.LINKEDIN_CLIENT_ID?.trim());
+    console.log("Render Client SECRET:", process.env.LINKEDIN_CLIENT_SECRET?.trim());
+
     if (!token) {
       return res.status(500).json({
         success: false,
