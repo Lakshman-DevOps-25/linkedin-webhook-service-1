@@ -1650,4 +1650,4 @@ const testLinkedInToken = async (req, res) => {
 |--------------------------------------------------------------------------
 */
 
-module.exports = {validateWebhook, receiveWebhook, testLinkedInData, testWebhook};
+module.exports = {validateWebhook, receiveWebhook, testLinkedInData, testWebhook, testLinkedInToken};
