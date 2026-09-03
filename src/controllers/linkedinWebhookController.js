@@ -1263,7 +1263,7 @@ const processLinkedInData =
     const notification = req.body?.notifications?.[0];
 
     console.log("Notification received:", JSON.stringify(notification, null, 2));
-    
+
     const organizationUrn = notification?.organizationalEntity;
 
     if (!organizationUrn) {
@@ -1364,44 +1364,185 @@ const processLinkedInData =
 
   try {
 
+    const organizationUrn = req.query.organizationUrn;
+
+    if (!organizationUrn) {
+      return res.status(400).json({
+        success: false,
+        message: "organizationUrn query parameter is required",
+        example:
+          "/api/v1/linkedin/test-data?organizationUrn=urn:li:organization:112423016"
+      });
+    }
+
+    if (!organizationUrn.startsWith("urn:li:organization:")) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid LinkedIn organization URN"
+      });
+    }
+
+    const organizationId = organizationUrn.split(":").pop();
+
+    console.log("Organization URN:", organizationUrn);
+    console.log("Organization ID:", organizationId);
+
     /*
-     * IMPORTANT:
-     * Do not wait for the whole operation.
+     * STEP 1
+     * Get organization details
      */
 
-    res.status(202).json({
+    const organization =
+      await getOrganization(organizationId);
+
+    const organizationName =
+      organization.localizedName ||
+      organization.vanityName ||
+      "";
+
+    /*
+     * STEP 2
+     * Save organization
+     */
+
+    await saveOrganization(
+      organization,
+      organizationId,
+      organizationUrn
+    );
+
+    /*
+     * STEP 3
+     * Get posts
+     */
+
+    const posts =
+      await getPosts(organizationUrn);
+
+    let postsSaved = 0;
+    let commentsSaved = 0;
+
+    /*
+     * STEP 4
+     * Save posts and comments
+     */
+
+    for (const post of posts) {
+
+      try {
+
+        await savePost(
+          post,
+          organizationId,
+          organizationUrn,
+          organizationName
+        );
+
+        postsSaved++;
+
+        const postId = post.id;
+
+        if (!postId) {
+          continue;
+        }
+
+        /*
+         * Get comments
+         */
+
+        const comments =
+          await getComments(postId);
+
+        /*
+         * Save comments
+         */
+
+        for (const comment of comments) {
+
+          await saveComment(
+            comment,
+            postId,
+            organizationId,
+            organizationUrn,
+            organizationName
+          );
+
+          commentsSaved++;
+        }
+
+      } catch (postError) {
+
+        console.error(
+          `Post processing failed for ${post.id}:`
+        );
+
+        console.error(
+          postError.response?.data ||
+          postError.message
+        );
+      }
+    }
+
+    console.log("");
+    console.log("========================================");
+    console.log("MANUAL LINKEDIN DATA TEST COMPLETE");
+    console.log("========================================");
+
+    console.log(
+      "Organization ID:",
+      organizationId
+    );
+
+    console.log(
+      "Posts received:",
+      posts.length
+    );
+
+    console.log(
+      "Posts saved:",
+      postsSaved
+    );
+
+    console.log(
+      "Comments saved:",
+      commentsSaved
+    );
+
+    console.log("========================================");
+
+    return res.status(200).json({
       success: true,
-      message:
-        "LinkedIn data processing started"
+      message: "LinkedIn data processing completed",
+      organizationId,
+      organizationUrn,
+      organizationName,
+      postsReceived: posts.length,
+      postsSaved,
+      commentsSaved
     });
-
-
-    console.log(
-      "Calling processLinkedInData()..."
-    );
-
-
-    await processLinkedInData(req, res);
-
-
-    console.log(
-      "processLinkedInData() completed"
-    );
-
 
   } catch (error) {
 
-    console.error(
-      "processLinkedInData() failed:"
-    );
+    console.error("");
+    console.error("========================================");
+    console.error("MANUAL LINKEDIN DATA TEST FAILED");
+    console.error("========================================");
 
     console.error(
       error.response?.data ||
       error.message
     );
 
-  }
+    console.error("========================================");
 
+    return res.status(500).json({
+      success: false,
+      message: "LinkedIn data processing failed",
+      error:
+        error.response?.data ||
+        error.message
+    });
+  }
 };
 
 
