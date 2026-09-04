@@ -1623,6 +1623,7 @@ const testWebhook = async (req, res) => {
 const testLinkedInToken = async (req, res) => {
   try {
     const token = process.env.LINKEDIN_ACCESS_TOKEN?.trim();
+    console.log("Testing LinkedIn token:", token);
 
     const response = await axios.get(
       "https://api.linkedin.com/v2/userinfo",
