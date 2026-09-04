@@ -1969,9 +1969,9 @@ const getCompanyPosts = async (req, res) => {
 
     const params = new URLSearchParams();
 
-    params.append("client_id", clientId);
-    params.append("client_secret", clientSecret);
-    params.append("token", accessToken);
+    // params.append("client_id", clientId);
+    // params.append("client_secret", clientSecret);
+    // params.append("token", accessToken);
 
     const response = await axios.post(
       "https://www.linkedin.com/oauth/v2/introspectToken",
