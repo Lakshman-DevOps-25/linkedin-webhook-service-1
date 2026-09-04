@@ -1625,6 +1625,9 @@ const testLinkedInToken = async (req, res) => {
     const token = process.env.LINKEDIN_ACCESS_TOKEN?.trim();
     console.log("Testing LinkedIn token:", token);
 
+    console.log("Render Client ID:", process.env.LINKEDIN_CLIENT_ID?.trim());
+    console.log("Render Client SECRET:", process.env.LINKEDIN_CLIENT_SECRET?.trim());
+
     const response = await axios.get(
       "https://api.linkedin.com/v2/userinfo",
       {
