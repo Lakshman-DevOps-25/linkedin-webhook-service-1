@@ -1632,7 +1632,7 @@ const testLinkedInToken = async (req, res) => {
       "https://api.linkedin.com/v2/userinfo",
       {
         headers: {
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer AQX9nMUN9mu0a7o3CWnLJdQ6Jy_1P9vx77t-BZYwDvH5t62Ed4N7Uc_6OCu3NiNxvIIucNRNEXjuZViPPMY_6-JrBYD1FXPEoDdha2ry0BtrlNCwP8IoZUSqYc_YAHiX91qZ5g-Q4HsWfgKPhu6OrPQpky7mgHfd0Nne0mrRyEhPFjuTgV3GA2rPOQIIvRPSQFF57Wpvz-KLkmr5vaDa4AsqNWDegE8ORlP-SGTRkQnh_bdDQE8gVqB_DZXz3ZOF5EpGUUI4dlhFaed9ytUH41xk5Q3cWNAoe7TBAXhXej0cJiKtRRkSa2gIRFwit-w27SX-ZS-32V3pDXsO-wGXlPT7d-jk7g`
         },
         validateStatus: () => true
       }
