@@ -1916,7 +1916,7 @@ const getCompanyPosts = async (req, res) => {
       "https://api.linkedin.com/v2/me",
       {
         headers: {
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${accessToken.trim()}`,
         }
       }
     );
