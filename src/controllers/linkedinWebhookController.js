@@ -1904,15 +1904,18 @@ const getCompanyPosts = async (req, res) => {
   const accessToken = 'AQX9nMUN9mu0a7o3CWnLJdQ6Jy_1P9vx77t-BZYwDvH5t62Ed4N7Uc_6OCu3NiNxvIIucNRNEXjuZViPPMY_6-JrBYD1FXPEoDdha2ry0BtrlNCwP8IoZUSqYc_YAHiX91qZ5g-Q4HsWfgKPhu6OrPQpky7mgHfd0Nne0mrRyEhPFjuTgV3GA2rPOQIIvRPSQFF57Wpvz-KLkmr5vaDa4AsqNWDegE8ORlP-SGTRkQnh_bdDQE8gVqB_DZXz3ZOF5EpGUUI4dlhFaed9ytUH41xk5Q3cWNAoe7TBAXhXej0cJiKtRRkSa2gIRFwit-w27SX-ZS-32V3pDXsO-wGXlPT7d-jk7g';       // Must contain r_organization_social
   const organizationId = 144819239;     // Your numeric company ID (e.g., 12345678)
   const authorUrn = encodeURIComponent(`urn:li:organization:${organizationId}`);
+
+  console.log("authorUrn: ", authorUrn);
+  console.log('Fetching posts for organization URN: ', authorUrn);
   
   const url = `https://api.linkedin.com/rest/posts?author=${authorUrn}&q=author&count=50`;
 
   try {
     const response = await axios.get(url, {
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        'Authorization': `Bearer ${accessToken.trim()}`, // .trim() prevents accidental newline characters from copy-pasting
         'X-Restli-Protocol-Version': '2.0.0',
-        'LinkedIn-Version': '202603' // Current YYYYMM format header
+        'LinkedIn-Version': '202603'
       }
     });
 
