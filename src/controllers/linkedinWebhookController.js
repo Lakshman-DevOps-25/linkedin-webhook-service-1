@@ -1957,6 +1957,8 @@ const getCompanyPosts = async (req, res) => {
   // const accessToken = process.env.LINKEDIN_ACCESS_TOKEN?.trim();
   const accessToken = 'AQX9nMUN9mu0a7o3CWnLJdQ6Jy_1P9vx77t-BZYwDvH5t62Ed4N7Uc_6OCu3NiNxvIIucNRNEXjuZViPPMY_6-JrBYD1FXPEoDdha2ry0BtrlNCwP8IoZUSqYc_YAHiX91qZ5g-Q4HsWfgKPhu6OrPQpky7mgHfd0Nne0mrRyEhPFjuTgV3GA2rPOQIIvRPSQFF57Wpvz-KLkmr5vaDa4AsqNWDegE8ORlP-SGTRkQnh_bdDQE8gVqB_DZXz3ZOF5EpGUUI4dlhFaed9ytUH41xk5Q3cWNAoe7TBAXhXej0cJiKtRRkSa2gIRFwit-w27SX-ZS-32V3pDXsO-wGXlPT7d-jk7g';       // Must contain r_organization_social
   const organizationId = 144819239;
+  // const clientId = process.env.LINKEDIN_CLIENT_ID?.trim();
+  // const clientSecret = process.env.LINKEDIN_CLIENT_SECRET?.trim();
 
   if (!accessToken) {
     return res.status(500).json({
@@ -1968,12 +1970,13 @@ const getCompanyPosts = async (req, res) => {
   try {
 
     const params = new URLSearchParams();
+
+    params.append("client_id", clientId);
+    params.append("client_secret", clientSecret);
+    params.append("token", accessToken);
+
     console.log("Introspecting LinkedIn token...");
     console.log("params:", params.toString());
-
-    // params.append("client_id", clientId);
-    // params.append("client_secret", clientSecret);
-    // params.append("token", accessToken);
 
     const response = await axios.post(
       "https://www.linkedin.com/oauth/v2/introspectToken",
