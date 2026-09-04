@@ -1900,6 +1900,7 @@ const testLinkedInMe = async (req, res) => {
 
 
 // Getting company posts
+/*
 const getCompanyPosts = async (req, res) => {
   const accessToken = 'AQX9nMUN9mu0a7o3CWnLJdQ6Jy_1P9vx77t-BZYwDvH5t62Ed4N7Uc_6OCu3NiNxvIIucNRNEXjuZViPPMY_6-JrBYD1FXPEoDdha2ry0BtrlNCwP8IoZUSqYc_YAHiX91qZ5g-Q4HsWfgKPhu6OrPQpky7mgHfd0Nne0mrRyEhPFjuTgV3GA2rPOQIIvRPSQFF57Wpvz-KLkmr5vaDa4AsqNWDegE8ORlP-SGTRkQnh_bdDQE8gVqB_DZXz3ZOF5EpGUUI4dlhFaed9ytUH41xk5Q3cWNAoe7TBAXhXej0cJiKtRRkSa2gIRFwit-w27SX-ZS-32V3pDXsO-wGXlPT7d-jk7g';       // Must contain r_organization_social
   const organizationId = 144819239;     // Your numeric company ID (e.g., 12345678)
@@ -1922,7 +1923,7 @@ const getCompanyPosts = async (req, res) => {
 
     console.log("LinkedIn /v2/me status:", userResponse.status);
     console.log("LinkedIn /v2/me response:", userResponse.data);
-    
+
   } catch (error) {
     console.error('Error fetching user info:', error.response ? error.response.data : error.message);
   }
@@ -1949,7 +1950,96 @@ const getCompanyPosts = async (req, res) => {
   } catch (error) {
     console.error('Error fetching posts:', error.response ? error.response.data : error.message);
   }
-}
+};
+*/
+
+const getCompanyPosts = async (req, res) => {
+  // const accessToken = process.env.LINKEDIN_ACCESS_TOKEN?.trim();
+  const accessToken = 'AQX9nMUN9mu0a7o3CWnLJdQ6Jy_1P9vx77t-BZYwDvH5t62Ed4N7Uc_6OCu3NiNxvIIucNRNEXjuZViPPMY_6-JrBYD1FXPEoDdha2ry0BtrlNCwP8IoZUSqYc_YAHiX91qZ5g-Q4HsWfgKPhu6OrPQpky7mgHfd0Nne0mrRyEhPFjuTgV3GA2rPOQIIvRPSQFF57Wpvz-KLkmr5vaDa4AsqNWDegE8ORlP-SGTRkQnh_bdDQE8gVqB_DZXz3ZOF5EpGUUI4dlhFaed9ytUH41xk5Q3cWNAoe7TBAXhXej0cJiKtRRkSa2gIRFwit-w27SX-ZS-32V3pDXsO-wGXlPT7d-jk7g';       // Must contain r_organization_social
+  const organizationId = 144819239;
+
+  if (!accessToken) {
+    return res.status(500).json({
+      success: false,
+      error: "LINKEDIN_ACCESS_TOKEN is missing"
+    });
+  }
+
+  const authorUrn = encodeURIComponent(
+    `urn:li:organization:${organizationId}`
+  );
+
+  const url =
+    `https://api.linkedin.com/rest/posts` +
+    `?q=author` +
+    `&author=${authorUrn}` +
+    `&count=50`;
+
+  try {
+    // 1. Test authenticated member
+    const userResponse = await axios.get(
+      "https://api.linkedin.com/v2/userinfo",
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "X-Restli-Protocol-Version": "2.0.0"
+        },
+        validateStatus: () => true
+      }
+    );
+
+    console.log("LinkedIn userinfo status:", userResponse.status);
+    console.log("LinkedIn userinfo:", userResponse.data);
+
+    if (userResponse.status >= 400) {
+      return res.status(userResponse.status).json({
+        success: false,
+        step: "userinfo",
+        linkedinStatus: userResponse.status,
+        linkedinResponse: userResponse.data
+      });
+    }
+
+    // 2. Fetch organization posts
+    const postsResponse = await axios.get(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "X-Restli-Protocol-Version": "2.0.0",
+        "LinkedIn-Version": "202603"
+      },
+      validateStatus: () => true
+    });
+
+    console.log(
+      "LinkedIn posts status:",
+      postsResponse.status
+    );
+
+    console.log(
+      "LinkedIn posts response:",
+      postsResponse.data
+    );
+
+    return res.status(postsResponse.status).json({
+      success: postsResponse.status < 400,
+      organizationId,
+      organizationUrn: `urn:li:organization:${organizationId}`,
+      linkedinStatus: postsResponse.status,
+      posts: postsResponse.data
+    });
+
+  } catch (error) {
+    console.error(
+      "LinkedIn API error:",
+      error.response?.data || error.message
+    );
+
+    return res.status(500).json({
+      success: false,
+      error: error.response?.data || error.message
+    });
+  }
+};
 
 /*
 |--------------------------------------------------------------------------
