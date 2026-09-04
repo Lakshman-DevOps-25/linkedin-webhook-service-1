@@ -1912,7 +1912,7 @@ const getCompanyPosts = async (req, res) => {
 
   try {
 
-    const response = await axios.get(
+    const userResponse = await axios.get(
       "https://api.linkedin.com/v2/me",
       {
         headers: {
@@ -1921,9 +1921,9 @@ const getCompanyPosts = async (req, res) => {
       }
     );
 
-    console.log("LinkedIn /v2/me status:", response.status);
-    console.log("LinkedIn /v2/me response:", response.data);
-    
+    console.log("LinkedIn /v2/me status:", userResponse.status);
+    console.log("LinkedIn /v2/me response:", userResponse.data);
+
     const response = await axios.get(url, {
       headers: {
         'Authorization': `Bearer ${accessToken.trim()}`, // .trim() prevents accidental newline characters from copy-pasting
