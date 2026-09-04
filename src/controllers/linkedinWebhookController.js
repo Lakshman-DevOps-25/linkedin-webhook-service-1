@@ -1992,17 +1992,17 @@ const getCompanyPosts = async (req, res) => {
     console.log("LINKEDIN TOKEN INTROSPECTION RESULT");
     console.log("========================================");
 
-    console.log("Token introspection response:", JSON.stringify(response, null, 2));
-    // console.log({
-    //   active: response.data.active,
-    //   status: response.data.status,
-    //   client_id: response.data.client_id,
-    //   auth_type: response.data.auth_type,
-    //   scope: response.data.scope,
-    //   created_at: response.data.created_at,
-    //   authorized_at: response.data.authorized_at,
-    //   expires_at: response.data.expires_at
-    // });
+    // console.log("Token introspection response:", JSON.stringify(response, null, 2));
+    console.log({
+      active: response.data.active,
+      status: response.data.status,
+      client_id: response.data.client_id,
+      auth_type: response.data.auth_type,
+      scope: response.data.scope,
+      created_at: response.data.created_at,
+      authorized_at: response.data.authorized_at,
+      expires_at: response.data.expires_at
+    });
 
     // 1. Test authenticated member
     const userResponse = await axios.get(
