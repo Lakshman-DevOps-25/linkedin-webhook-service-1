@@ -1965,17 +1965,39 @@ const getCompanyPosts = async (req, res) => {
     });
   }
 
-  const authorUrn = encodeURIComponent(
-    `urn:li:organization:${organizationId}`
-  );
-
-  const url =
-    `https://api.linkedin.com/rest/posts` +
-    `?q=author` +
-    `&author=${authorUrn}` +
-    `&count=50`;
-
   try {
+
+    const params = new URLSearchParams();
+
+    params.append("client_id", clientId);
+    params.append("client_secret", clientSecret);
+    params.append("token", accessToken);
+
+    const response = await axios.post(
+      "https://www.linkedin.com/oauth/v2/introspectToken",
+      params.toString(),
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        }
+      }
+    );
+
+    console.log("========================================");
+    console.log("LINKEDIN TOKEN INTROSPECTION RESULT");
+    console.log("========================================");
+
+    console.log({
+      active: response.data.active,
+      status: response.data.status,
+      client_id: response.data.client_id,
+      auth_type: response.data.auth_type,
+      scope: response.data.scope,
+      created_at: response.data.created_at,
+      authorized_at: response.data.authorized_at,
+      expires_at: response.data.expires_at
+    });
+
     // 1. Test authenticated member
     const userResponse = await axios.get(
       "https://api.linkedin.com/v2/userinfo",
@@ -2000,7 +2022,17 @@ const getCompanyPosts = async (req, res) => {
       });
     }
 
-    // 2. Fetch organization posts
+    // 2. Fetch organization posts 
+    const authorUrn = encodeURIComponent(
+      `urn:li:organization:${organizationId}`
+    );
+
+    const url =
+      `https://api.linkedin.com/rest/posts` +
+      `?q=author` +
+      `&author=${authorUrn}` +
+      `&count=50`;
+
     const postsResponse = await axios.get(url, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
