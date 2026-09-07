@@ -2246,35 +2246,82 @@ const startLinkedInOAuth = (req, res) => {
 
 // const axios = require("axios");
 
+const axios = require("axios");
+
 const linkedInOAuthCallback = async (req, res) => {
 
   try {
 
-    const { code, state, error, error_description } = req.query;
+    const {
+      code,
+      state,
+      error,
+      error_description
+    } = req.query;
 
     if (error) {
+
       return res.status(400).json({
         success: false,
         error,
         error_description
       });
+
     }
 
     if (!code) {
+
       return res.status(400).json({
         success: false,
-        message: "Authorization code was not returned"
+        message:
+          "Authorization code was not returned"
       });
+
     }
 
-    const clientId =
-      process.env.LINKEDIN_CLIENT_ID?.trim();
+    // -----------------------------
+    // Verify state
+    // -----------------------------
 
-    const clientSecret =
-      process.env.LINKEDIN_CLIENT_SECRET?.trim();
+    const savedState =
+      req.cookies.linkedin_oauth_state;
 
-    const redirectUri =
-      "https://linkedin-webhook-service-1.onrender.com/api/v1/linkedin/oauth/callback";
+    if (!savedState || savedState !== state) {
+
+      return res.status(400).json({
+        success: false,
+        message:
+          "OAuth state mismatch"
+      });
+
+    }
+
+    // -----------------------------
+    // Get PKCE verifier
+    // -----------------------------
+
+    const codeVerifier =
+      req.cookies.linkedin_code_verifier;
+
+    if (!codeVerifier) {
+
+      return res.status(400).json({
+        success: false,
+        message:
+          "PKCE code_verifier is missing"
+      });
+
+    }
+
+    const clientId = process.env.LINKEDIN_CLIENT_ID?.trim();
+
+    const clientSecret = process.env.LINKEDIN_CLIENT_SECRET?.trim();
+
+    const redirectUri = "https://linkedin-webhook-service-1.onrender.com/api/v1/linkedin/oauth/callback";
+
+    // -----------------------------
+    // Exchange authorization code
+    // -----------------------------
 
     const params = new URLSearchParams();
 
@@ -2303,8 +2350,10 @@ const linkedInOAuthCallback = async (req, res) => {
       redirectUri
     );
 
-    console.log("Exchanging authorization code for access token...");
-    console.log("params:", params.toString());
+    params.append(
+      "code_verifier",
+      codeVerifier
+    );
 
     const response = await axios.post(
       "https://www.linkedin.com/oauth/v2/accessToken",
@@ -2313,23 +2362,75 @@ const linkedInOAuthCallback = async (req, res) => {
         headers: {
           "Content-Type":
             "application/x-www-form-urlencoded"
-        }
+        },
+        validateStatus: () => true
       }
     );
 
-    return res.json({
-      success: true,
-      message: "New LinkedIn access token generated",
+    console.log(
+      "LinkedIn token response status:",
+      response.status
+    );
+
+    console.log(
+      "LinkedIn token response:",
+      response.data
+    );
+
+    if (response.status !== 200) {
+
+      return res.status(response.status).json({
+        success: false,
+        linkedinStatus: response.status,
+        linkedinResponse: response.data
+      });
+
+    }
+
+    const newAccessToken =
+      response.data.access_token;
+
+    // -----------------------------
+    // Test the NEW token immediately
+    // -----------------------------
+
+    const userInfoResponse =
+      await axios.get(
+        "https://api.linkedin.com/v2/userinfo",
+        {
+          headers: {
+            Authorization:
+              `Bearer ${newAccessToken}`
+          },
+          validateStatus: () => true
+        }
+      );
+
+    return res.status(200).json({
+
+      success:
+        userInfoResponse.status >= 200 &&
+        userInfoResponse.status < 300,
+
+      message:
+        "LinkedIn OAuth completed",
+
       token: {
-        access_token_length:
-          response.data.access_token?.length,
+        exists: !!newAccessToken,
+        length: newAccessToken?.length
+      },
 
-        expires_in:
-          response.data.expires_in,
+      oauth: {
+        status: response.status,
+        scope: response.data.scope,
+        expires_in: response.data.expires_in
+      },
 
-        scope:
-          response.data.scope
+      userinfo: {
+        status: userInfoResponse.status,
+        data: userInfoResponse.data
       }
+
     });
 
   } catch (error) {
@@ -2341,13 +2442,18 @@ const linkedInOAuthCallback = async (req, res) => {
     );
 
     return res.status(500).json({
+
       success: false,
+
       error:
         error.response?.data ||
         error.message
+
     });
+
   }
 };
+
 /*
 |--------------------------------------------------------------------------
 | Exports
