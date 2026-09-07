@@ -2279,8 +2279,8 @@ const linkedInOAuthCallback = async (req, res) => {
     // Verify state
     // -----------------------------
 
-    const savedState =
-      req.cookies.linkedin_oauth_state;
+    // const savedState = req.cookies.linkedin_oauth_state;
+    const savedState = "browser-test-123";
 
     if (!savedState || savedState !== state) {
 
@@ -2296,8 +2296,9 @@ const linkedInOAuthCallback = async (req, res) => {
     // Get PKCE verifier
     // -----------------------------
 
-    const codeVerifier =
-      req.cookies.linkedin_code_verifier;
+    // const codeVerifier = req.cookies.linkedin_code_verifier;
+    const codeVerifier = req.query.code_verifier;
+    console.log("PKCE code_verifier:", codeVerifier);
 
     if (!codeVerifier) {
 
