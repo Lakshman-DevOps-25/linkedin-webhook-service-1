@@ -2126,6 +2126,94 @@ const getCompanyPosts = async (req, res) => {
   }
 };
 
+
+const https = require("https");
+
+const testLinkedInUserInfoNative = async (req, res) => {
+
+  try {
+
+    const accessToken =
+      process.env.LINKEDIN_ACCESS_TOKEN?.trim();
+
+    if (!accessToken) {
+      return res.status(500).json({
+        success: false,
+        message: "LINKEDIN_ACCESS_TOKEN is missing"
+      });
+    }
+
+    const options = {
+      hostname: "api.linkedin.com",
+      path: "/v2/userinfo",
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Accept": "application/json"
+      }
+    };
+
+    const request = https.request(
+      options,
+      (response) => {
+
+        let body = "";
+
+        response.on("data", (chunk) => {
+          body += chunk;
+        });
+
+        response.on("end", () => {
+
+          let data;
+
+          try {
+            data = JSON.parse(body);
+          } catch {
+            data = body;
+          }
+
+          return res.status(200).json({
+            success:
+              response.statusCode >= 200 &&
+              response.statusCode < 300,
+
+            linkedinStatus: response.statusCode,
+
+            linkedinResponse: data
+          });
+
+        });
+
+      }
+    );
+
+    request.on("error", (error) => {
+
+      console.error(
+        "Native HTTPS LinkedIn error:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+
+    });
+
+    request.end();
+
+  } catch (error) {
+
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+
+  }
+};
+
 /*
 |--------------------------------------------------------------------------
 | Exports
@@ -2133,5 +2221,5 @@ const getCompanyPosts = async (req, res) => {
 */
 
 module.exports = {validateWebhook, receiveWebhook, testLinkedInData, testWebhook, testLinkedInToken, introspectLinkedInToken,
-  testLinkedInUserInfo, testLinkedInMe, getCompanyPosts
+  testLinkedInUserInfo, testLinkedInMe, getCompanyPosts, testLinkedInUserInfoNative
 };
