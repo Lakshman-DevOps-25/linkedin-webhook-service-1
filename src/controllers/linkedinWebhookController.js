@@ -2015,6 +2015,7 @@ const getCompanyPosts = async (req, res) => {
       expires_at: response.data.expires_at
     });
 
+    /*
     // 1. Test authenticated member
     const userResponse = await axios.get(
       "https://api.linkedin.com/v2/me",
@@ -2037,7 +2038,25 @@ const getCompanyPosts = async (req, res) => {
         linkedinResponse: userResponse.data
       });
     }
+    */
 
+    const response = await axios.get(
+      "https://api.linkedin.com/v2/me",
+      {
+        headers: {
+          Authorization: `Bearer AQVa4akHX5xyYxO64BSEiZ57dnqfhLkmFVlgfaT7MXqwgYJB3Rnmo9lufFmydUG-BEMlg8qX75v9m_ajE_eo2WALGPfd9fzFs3o42y4cdePfXgdykufuxD-SwFNBGmk8Z3jhdFBB0yPMdmaY1vGy0wJ7MbpiVOREdwMfNKjogJAnYdpjXwEjRZDj0Wrf7y4ZfWaTBX2kwbOvz2T6Znn85HZt4tOIOFlx1PN77BJK_-RAMsLuAXutel72Ef2ZByPevKPrV7E5GQgaydYjkTO5gNyRuWCyVantKRcuXvTopCOfEpkKa7-wxpPWjlQHl4yTuRyF8RisT6T9tEIeFCuLMDDVJ79ZtQ`
+        },
+        validateStatus: () => true
+      }
+    );
+
+    return res.status(response.status).json({
+      success: response.status >= 200 && response.status < 300,
+      linkedinStatus: response.status,
+      data: response.data
+    });
+
+    /*
     // 2. Fetch organization posts 
     const authorUrn = encodeURIComponent(
       `urn:li:organization:${organizationId}`
@@ -2075,6 +2094,7 @@ const getCompanyPosts = async (req, res) => {
       linkedinStatus: postsResponse.status,
       posts: postsResponse.data
     });
+    */
 
   } catch (error) {
     console.error(
