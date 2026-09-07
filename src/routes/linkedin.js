@@ -12,7 +12,8 @@ const {
   getCompanyPosts,
   testLinkedInUserInfoNative,
   startLinkedInOAuth,
-  linkedInOAuthCallback
+  linkedInOAuthCallback,
+  debugStoredToken
 } = require("../controllers/linkedinWebhookController");
 
 const router = express.Router();
@@ -89,6 +90,11 @@ router.get(
 router.get(
   "/oauth/callback",
   linkedInOAuthCallback
+);
+
+router.get(
+  "/debug-token",
+  debugStoredToken
 );
 
 console.log("Before calling post /webhook-test");

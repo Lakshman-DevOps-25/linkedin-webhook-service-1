@@ -2514,6 +2514,53 @@ const getCompanyPosts = async (req, res) => {
   }
 };
 
+
+const debugStoredToken = async (req, res) => {
+  try {
+    const accessToken =
+      process.env.LINKEDIN_ACCESS_TOKEN?.trim();
+
+    if (!accessToken) {
+      return res.status(500).json({
+        success: false,
+        message: "LINKEDIN_ACCESS_TOKEN is missing"
+      });
+    }
+
+    const response = await axios.get(
+      "https://api.linkedin.com/v2/userinfo",
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        },
+        validateStatus: () => true
+      }
+    );
+
+    return res.status(200).json({
+      success:
+        response.status >= 200 &&
+        response.status < 300,
+
+      token: {
+        exists: true,
+        length: accessToken.length,
+        beginning: accessToken.substring(0, 12),
+        ending: accessToken.slice(-12)
+      },
+
+      linkedinStatus: response.status,
+      linkedinResponse: response.data
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: error.response?.data || error.message
+    });
+  }
+};
+
 /*
 |--------------------------------------------------------------------------
 | Exports
@@ -2521,5 +2568,6 @@ const getCompanyPosts = async (req, res) => {
 */
 
 module.exports = {validateWebhook, receiveWebhook, testLinkedInData, testWebhook, testLinkedInToken, introspectLinkedInToken,
-  testLinkedInUserInfo, testLinkedInMe, getCompanyPosts, testLinkedInUserInfoNative, startLinkedInOAuth, linkedInOAuthCallback
+  testLinkedInUserInfo, testLinkedInMe, getCompanyPosts, testLinkedInUserInfoNative, startLinkedInOAuth, linkedInOAuthCallback, 
+  debugStoredToken
 };
