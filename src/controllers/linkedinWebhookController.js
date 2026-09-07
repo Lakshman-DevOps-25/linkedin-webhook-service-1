@@ -2434,11 +2434,12 @@ const linkedInOAuthCallback = async (req, res) => {
 
 const getCompanyPosts = async (req, res) => {
   try {
-    const accessToken =
-      process.env.LINKEDIN_ACCESS_TOKEN?.trim();
+    const accessToken = process.env.LINKEDIN_ACCESS_TOKEN?.trim();
 
-    const organizationUrn =
-      "urn:li:organization:144819239";
+    console.log("========== LINKEDIN POSTS TEST ==========");
+    console.log("Access token", accessToken);
+
+    const organizationUrn = "urn:li:organization:144819239";
 
     if (!accessToken) {
       return res.status(500).json({
