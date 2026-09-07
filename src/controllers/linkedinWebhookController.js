@@ -2297,15 +2297,15 @@ const linkedInOAuthCallback = async (req, res) => {
     // -----------------------------
 
     // const codeVerifier = req.cookies.linkedin_code_verifier;
-    const codeVerifier = req.query.code_verifier;
-    console.log("PKCE code_verifier:", codeVerifier);
+    const codeVerifier = req.query.code;
+    console.log("PKCE code:", codeVerifier);
 
     if (!codeVerifier) {
 
       return res.status(400).json({
         success: false,
         message:
-          "PKCE code_verifier is missing"
+          "PKCE code is missing"
       });
 
     }
