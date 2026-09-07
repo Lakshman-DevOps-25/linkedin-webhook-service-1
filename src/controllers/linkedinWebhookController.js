@@ -1984,16 +1984,6 @@ const getCompanyPosts = async (req, res) => {
     console.log("Introspecting LinkedIn token...");
     console.log("params:", params.toString());
 
-    try {
-    const accessToken = process.env.LINKEDIN_ACCESS_TOKEN?.trim();
-
-    if (!accessToken) {
-      return res.status(500).json({
-        success: false,
-        message: "LINKEDIN_ACCESS_TOKEN is missing"
-      });
-    }
-
     console.log("====================================");
     console.log("LINKEDIN AUTH DEBUG");
     console.log("====================================");
@@ -2004,10 +1994,7 @@ const getCompanyPosts = async (req, res) => {
       "Token beginning:",
       accessToken.substring(0, 12)
     );
-    console.log(
-      "Token ending:",
-      accessToken.substring(accessToken.length - 12)
-    );
+    console.log("Token ending:", accessToken.substring(accessToken.length - 12));
 
     // -----------------------------------------
     // TEST 1: Introspection
