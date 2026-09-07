@@ -1701,21 +1701,42 @@ const introspectLinkedInToken = async (req, res) => {
 
     const params = new URLSearchParams();
 
-    console.log("Introspecting LinkedIn token from introspectLinkedInToken function ...");
-    console.log("params:", params.toString());
-
     params.append("client_id", clientId);
     params.append("client_secret", clientSecret);
     params.append("token", accessToken);
 
-    const response = await axios.post(
+    console.log("Introspecting LinkedIn token from introspectLinkedInToken function ...");
+    console.log("params:", params.toString());
+
+    // const response = await axios.post(
+    //   "https://www.linkedin.com/oauth/v2/introspectToken",
+    //   params.toString(),
+    //   {
+    //     headers: {
+    //       "Content-Type": "application/x-www-form-urlencoded"
+    //     }
+    //   }
+    // );
+
+    const introspection = await axios.post(
       "https://www.linkedin.com/oauth/v2/introspectToken",
-      params.toString(),
+      new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        token: newAccessToken
+      }).toString(),
       {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded"
-        }
+        },
+        validateStatus: () => true
       }
+    );
+
+    console.log(
+      "LinkedIn token introspection:",
+      introspection.status,
+      introspection.data
     );
 
     console.log("========================================");
