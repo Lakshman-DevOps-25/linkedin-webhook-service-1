@@ -2214,6 +2214,137 @@ const testLinkedInUserInfoNative = async (req, res) => {
   }
 };
 
+
+const startLinkedInOAuth = (req, res) => {
+
+  const clientId =
+    process.env.LINKEDIN_CLIENT_ID?.trim();
+
+  const redirectUri =
+    "https://linkedin-webhook-service-1.onrender.com/api/v1/linkedin/oauth/callback";
+
+  const scopes = [
+    "openid",
+    "profile",
+    "email",
+    // "r_organization_admin",
+    // "r_organization_social",
+    // "w_organization_social"
+  ].join(" ");
+
+  const authorizationUrl =
+    "https://www.linkedin.com/oauth/v2/authorization" +
+    `?response_type=code` +
+    `&client_id=${encodeURIComponent(clientId)}` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&state=browser-test-123` +
+    `&scope=${encodeURIComponent(scopes)}`;
+
+  return res.redirect(authorizationUrl);
+};
+
+
+const axios = require("axios");
+
+const linkedInOAuthCallback = async (req, res) => {
+
+  try {
+
+    const { code, state, error, error_description } = req.query;
+
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        error,
+        error_description
+      });
+    }
+
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        message: "Authorization code was not returned"
+      });
+    }
+
+    const clientId =
+      process.env.LINKEDIN_CLIENT_ID?.trim();
+
+    const clientSecret =
+      process.env.LINKEDIN_CLIENT_SECRET?.trim();
+
+    const redirectUri =
+      "https://linkedin-webhook-service-1.onrender.com/api/v1/linkedin/oauth/callback";
+
+    const params = new URLSearchParams();
+
+    params.append(
+      "grant_type",
+      "authorization_code"
+    );
+
+    params.append(
+      "code",
+      code
+    );
+
+    params.append(
+      "client_id",
+      clientId
+    );
+
+    params.append(
+      "client_secret",
+      clientSecret
+    );
+
+    params.append(
+      "redirect_uri",
+      redirectUri
+    );
+
+    const response = await axios.post(
+      "https://www.linkedin.com/oauth/v2/accessToken",
+      params.toString(),
+      {
+        headers: {
+          "Content-Type":
+            "application/x-www-form-urlencoded"
+        }
+      }
+    );
+
+    return res.json({
+      success: true,
+      message: "New LinkedIn access token generated",
+      token: {
+        access_token_length:
+          response.data.access_token?.length,
+
+        expires_in:
+          response.data.expires_in,
+
+        scope:
+          response.data.scope
+      }
+    });
+
+  } catch (error) {
+
+    console.error(
+      "LinkedIn OAuth callback error:",
+      error.response?.data ||
+      error.message
+    );
+
+    return res.status(500).json({
+      success: false,
+      error:
+        error.response?.data ||
+        error.message
+    });
+  }
+};
 /*
 |--------------------------------------------------------------------------
 | Exports
@@ -2221,5 +2352,5 @@ const testLinkedInUserInfoNative = async (req, res) => {
 */
 
 module.exports = {validateWebhook, receiveWebhook, testLinkedInData, testWebhook, testLinkedInToken, introspectLinkedInToken,
-  testLinkedInUserInfo, testLinkedInMe, getCompanyPosts, testLinkedInUserInfoNative
+  testLinkedInUserInfo, testLinkedInMe, getCompanyPosts, testLinkedInUserInfoNative, startLinkedInOAuth, linkedInOAuthCallback
 };
