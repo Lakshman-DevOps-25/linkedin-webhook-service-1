@@ -2002,11 +2002,11 @@ const getCompanyPosts = async (req, res) => {
 
     // const params = new URLSearchParams();
 
-    params.append("client_id", process.env.LINKEDIN_CLIENT_ID?.trim());
+    // params.append("client_id", process.env.LINKEDIN_CLIENT_ID?.trim());
 
-    params.append("client_secret", process.env.LINKEDIN_CLIENT_SECRET?.trim());
+    // params.append("client_secret", process.env.LINKEDIN_CLIENT_SECRET?.trim());
 
-    params.append("token", accessToken);
+    // params.append("token", accessToken);
 
     const introspectionResponse = await axios.post(
       "https://www.linkedin.com/oauth/v2/introspectToken",
