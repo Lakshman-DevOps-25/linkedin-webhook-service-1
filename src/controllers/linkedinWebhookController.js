@@ -2244,10 +2244,6 @@ const startLinkedInOAuth = (req, res) => {
 };
 
 
-// const axios = require("axios");
-
-const axios = require("axios");
-
 const linkedInOAuthCallback = async (req, res) => {
 
   try {
