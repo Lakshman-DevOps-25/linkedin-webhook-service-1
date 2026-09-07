@@ -2518,8 +2518,9 @@ const getCompanyPosts = async (req, res) => {
 
 const debugStoredToken = async (req, res) => {
   try {
-    const accessToken =
-      process.env.LINKEDIN_ACCESS_TOKEN?.trim();
+    const accessToken = process.env.LINKEDIN_ACCESS_TOKEN?.trim();
+
+    console.log("accessToken:", accessToken);
 
     if (!accessToken) {
       return res.status(500).json({
