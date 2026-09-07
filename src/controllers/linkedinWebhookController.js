@@ -1974,6 +1974,8 @@ const getCompanyPosts = async (req, res) => {
   try {
 
     const params = new URLSearchParams();
+    console.log("Introspecting LinkedIn token from getCompanyPosts function ...");
+    console.log("params:", params.toString());
 
     params.append("client_id", clientId);
     params.append("client_secret", clientSecret);
