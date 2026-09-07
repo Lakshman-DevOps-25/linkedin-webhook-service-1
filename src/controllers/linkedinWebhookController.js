@@ -1780,64 +1780,64 @@ const testLinkedInUserInfo = async (req, res) => {
   console.log("========================================");
 
   try {
-    const token = process.env.LINKEDIN_ACCESS_TOKEN?.trim();
+    const accessToken = process.env.LINKEDIN_ACCESS_TOKEN?.trim();
 
-    console.log("Render Client ID:", process.env.LINKEDIN_CLIENT_ID?.trim());
-    console.log("Render Client SECRET:", process.env.LINKEDIN_CLIENT_SECRET?.trim());
-
-    if (!token) {
+    if (!accessToken) {
       return res.status(500).json({
         success: false,
-        error: "LINKEDIN_ACCESS_TOKEN is missing"
+        message: "LINKEDIN_ACCESS_TOKEN is not configured"
       });
     }
 
-    const fingerprint = crypto
-      .createHash("sha256")
-      .update(token)
-      .digest("hex")
-      .substring(0, 16);
+    console.log("======================================");
+    console.log("LINKEDIN USERINFO BROWSER TEST");
+    console.log("======================================");
 
-    console.log("Token fingerprint:", fingerprint);
+    console.log("Token exists:", !!accessToken);
+    console.log("Token length:", accessToken.length);
+    console.log(
+      "Token preview:",
+      `${accessToken.substring(0, 10)}...${accessToken.substring(accessToken.length - 10)}`
+    );
 
     const response = await axios.get(
       "https://api.linkedin.com/v2/userinfo",
       {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${accessToken}`
+        },
+        validateStatus: () => true
       }
     );
 
-    console.log("LinkedIn userinfo status:", response.status);
-    console.log("LinkedIn userinfo:", response.data);
+    console.log("LinkedIn status:", response.status);
+    console.log("LinkedIn response:", response.data);
 
-    return res.status(200).json({
-      success: true,
-      tokenFingerprint: fingerprint,
+    return res.status(response.status).json({
+      success: response.status >= 200 && response.status < 300,
       linkedinStatus: response.status,
-      userInfo: response.data
+      data: response.data
     });
 
   } catch (error) {
-    console.error("========================================");
-    console.error("LINKEDIN USERINFO FAILED");
-    console.error("========================================");
+    console.error("LinkedIn userinfo error:");
 
-    console.error("Status:", error.response?.status);
-    console.error("Response:", error.response?.data);
+    if (error.response) {
+      console.error("Status:", error.response.status);
+      console.error("Data:", error.response.data);
 
-    return res.status(error.response?.status || 500).json({
+      return res.status(error.response.status).json({
+        success: false,
+        linkedinStatus: error.response.status,
+        error: error.response.data
+      });
+    }
+
+    console.error(error.message);
+
+    return res.status(500).json({
       success: false,
-      tokenFingerprint: error.response
-        ? crypto
-            .createHash("sha256")
-            .update(process.env.LINKEDIN_ACCESS_TOKEN.trim())
-            .digest("hex")
-            .substring(0, 16)
-        : undefined,
-      linkedinStatus: error.response?.status,
-      linkedinError: error.response?.data || error.message
+      error: error.message
     });
   }
 };
