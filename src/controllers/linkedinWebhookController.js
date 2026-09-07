@@ -2020,8 +2020,7 @@ const getCompanyPosts = async (req, res) => {
       "https://api.linkedin.com/v2/userinfo",
       {
         headers: {
-          Authorization: `Bearer ${accessToken}`,
-          // "X-Restli-Protocol-Version": "2.0.0"
+          Authorization: `Bearer ${accessToken}`
         },
         validateStatus: () => true
       }
