@@ -2436,6 +2436,8 @@ const getCompanyPosts = async (req, res) => {
   try {
     const accessToken = process.env.LINKEDIN_ACCESS_TOKEN?.trim();
 
+    console.log("Testing LinkedIn token for company posts:", accessToken);
+
     if (!accessToken) {
       return res.status(500).json({
         success: false,
