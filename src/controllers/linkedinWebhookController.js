@@ -1986,10 +1986,15 @@ const getCompanyPosts = async (req, res) => {
 
     const response = await axios.post(
       "https://www.linkedin.com/oauth/v2/introspectToken",
-      params.toString(),
+      // params.toString(),
+      {
+        "client_id": "7752cya07w6jkn",
+        "client_secret": "WPL_AP1.TCIB2YyZQv81ebuY./socUA==",
+        "token": "AQVa4akHX5xyYxO64BSEiZ57dnqfhLkmFVlgfaT7MXqwgYJB3Rnmo9lufFmydUG-BEMlg8qX75v9m_ajE_eo2WALGPfd9fzFs3o42y4cdePfXgdykufuxD-SwFNBGmk8Z3jhdFBB0yPMdmaY1vGy0wJ7MbpiVOREdwMfNKjogJAnYdpjXwEjRZDj0Wrf7y4ZfWaTBX2kwbOvz2T6Znn85HZt4tOIOFlx1PN77BJK_-RAMsLuAXutel72Ef2ZByPevKPrV7E5GQgaydYjkTO5gNyRuWCyVantKRcuXvTopCOfEpkKa7-wxpPWjlQHl4yTuRyF8RisT6T9tEIeFCuLMDDVJ79ZtQ"
+      },
       {
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded"
+          "Content-Type": "application/x-www-form-urlencoded",
         }
       }
     );
