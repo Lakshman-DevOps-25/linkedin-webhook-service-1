@@ -2539,6 +2539,10 @@ const debugStoredToken = async (req, res) => {
       }
     );
 
+    console.log("Response:", response);
+    console.log("LinkedIn userinfo status:", response.status);
+    console.log("LinkedIn userinfo response:", response.data);
+
     return res.status(200).json({
       success:
         response.status >= 200 &&
