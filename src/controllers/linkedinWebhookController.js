@@ -2322,57 +2322,29 @@ const linkedInOAuthCallback = async (req, res) => {
 
     const params = new URLSearchParams();
 
-    params.append(
-      "grant_type",
-      "authorization_code"
-    );
+    params.append("grant_type", "authorization_code");
+    params.append("code", code);
+    params.append("client_id", clientId);
+    params.append("client_secret", clientSecret);
+    params.append("redirect_uri", redirectUri);
+    params.append("code_verifier", codeVerifier);
 
-    params.append(
-      "code",
-      code
-    );
-
-    params.append(
-      "client_id",
-      clientId
-    );
-
-    params.append(
-      "client_secret",
-      clientSecret
-    );
-
-    params.append(
-      "redirect_uri",
-      redirectUri
-    );
-
-    params.append(
-      "code_verifier",
-      codeVerifier
-    );
+    console.log("Exchanging authorization code for access token...");
+    console.log("params:", params.toString());
 
     const response = await axios.post(
       "https://www.linkedin.com/oauth/v2/accessToken",
       params.toString(),
       {
         headers: {
-          "Content-Type":
-            "application/x-www-form-urlencoded"
+          "Content-Type": "application/x-www-form-urlencoded"
         },
         validateStatus: () => true
       }
     );
 
-    console.log(
-      "LinkedIn token response status:",
-      response.status
-    );
-
-    console.log(
-      "LinkedIn token response:",
-      response.data
-    );
+    console.log("LinkedIn token response status:", response.status);
+    console.log("LinkedIn token response:", response.data);
 
     if (response.status !== 200) {
 
@@ -2384,8 +2356,7 @@ const linkedInOAuthCallback = async (req, res) => {
 
     }
 
-    const newAccessToken =
-      response.data.access_token;
+    const newAccessToken = response.data.access_token;
 
     // -----------------------------
     // Test the NEW token immediately
