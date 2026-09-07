@@ -2227,9 +2227,9 @@ const startLinkedInOAuth = (req, res) => {
     "openid",
     "profile",
     "email",
-    // "r_organization_admin",
-    // "r_organization_social",
-    // "w_organization_social"
+    "r_organization_admin",
+    "r_organization_social",
+    "w_organization_social"
   ].join(" ");
 
   const authorizationUrl =
@@ -2302,6 +2302,9 @@ const linkedInOAuthCallback = async (req, res) => {
       "redirect_uri",
       redirectUri
     );
+
+    console.log("Exchanging authorization code for access token...");
+    console.log("params:", params.toString());
 
     const response = await axios.post(
       "https://www.linkedin.com/oauth/v2/accessToken",
