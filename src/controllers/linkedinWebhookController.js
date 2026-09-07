@@ -2000,7 +2000,7 @@ const getCompanyPosts = async (req, res) => {
     // TEST 1: Introspection
     // -----------------------------------------
 
-    const params = new URLSearchParams();
+    // const params = new URLSearchParams();
 
     params.append("client_id", process.env.LINKEDIN_CLIENT_ID?.trim());
 
