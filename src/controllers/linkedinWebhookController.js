@@ -2021,7 +2021,7 @@ const getCompanyPosts = async (req, res) => {
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          "X-Restli-Protocol-Version": "2.0.0"
+          // "X-Restli-Protocol-Version": "2.0.0"
         },
         validateStatus: () => true
       }
