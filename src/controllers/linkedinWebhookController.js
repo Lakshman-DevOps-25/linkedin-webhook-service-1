@@ -2247,7 +2247,6 @@ const startLinkedInOAuth = (req, res) => {
 const linkedInOAuthCallback = async (req, res) => {
 
   try {
-
     const {
       code,
       state,
@@ -2256,7 +2255,7 @@ const linkedInOAuthCallback = async (req, res) => {
     } = req.query;
 
     if (error) {
-
+      console.error("LinkedIn OAuth error:", error, error_description);
       return res.status(400).json({
         success: false,
         error,
@@ -2266,7 +2265,7 @@ const linkedInOAuthCallback = async (req, res) => {
     }
 
     if (!code) {
-
+      console.error("LinkedIn OAuth error: Authorization code was not returned");
       return res.status(400).json({
         success: false,
         message:
@@ -2284,6 +2283,7 @@ const linkedInOAuthCallback = async (req, res) => {
 
     if (!savedState || savedState !== state) {
 
+      console.error("LinkedIn OAuth error: OAuth state mismatch");
       return res.status(400).json({
         success: false,
         message:
@@ -2297,24 +2297,30 @@ const linkedInOAuthCallback = async (req, res) => {
     // -----------------------------
 
     // const codeVerifier = req.cookies.linkedin_code_verifier;
-    const codeVerifier = req.query.code;
-    console.log("PKCE code:", codeVerifier);
+    // const codeVerifier = req.query.codeVerifier;
+    // console.log("PKCE code:", codeVerifier);
 
-    if (!codeVerifier) {
-
-      return res.status(400).json({
-        success: false,
-        message:
-          "PKCE code is missing"
-      });
-
-    }
+    // if (!codeVerifier) {
+    //   console.error("LinkedIn OAuth error: PKCE code is missing");
+    //   return res.status(400).json({
+    //     success: false,
+    //     message:
+    //       "PKCE code is missing"
+    //   });
+    // }
 
     const clientId = process.env.LINKEDIN_CLIENT_ID?.trim();
 
     const clientSecret = process.env.LINKEDIN_CLIENT_SECRET?.trim();
 
     const redirectUri = "https://linkedin-webhook-service-1.onrender.com/api/v1/linkedin/oauth/callback";
+
+    console.log("========== LINKEDIN OAUTH CONFIG ==========");
+    console.log("Client ID:", process.env.LINKEDIN_CLIENT_ID?.trim());
+    console.log("Client Secret exists:", !!process.env.LINKEDIN_CLIENT_SECRET);
+    console.log("Client Secret length:", process.env.LINKEDIN_CLIENT_SECRET?.trim().length);
+    console.log("Redirect URI:", process.env.LINKEDIN_REDIRECT_URI?.trim());
+    console.log("============================================");
 
     // -----------------------------
     // Exchange authorization code
@@ -2327,7 +2333,7 @@ const linkedInOAuthCallback = async (req, res) => {
     params.append("client_id", clientId);
     params.append("client_secret", clientSecret);
     params.append("redirect_uri", redirectUri);
-    params.append("code_verifier", codeVerifier);
+    // params.append("code_verifier", codeVerifier);
 
     console.log("Exchanging authorization code for access token...");
     console.log("params:", params.toString());
