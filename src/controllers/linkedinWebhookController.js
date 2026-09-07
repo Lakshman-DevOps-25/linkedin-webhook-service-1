@@ -2543,7 +2543,7 @@ const debugStoredToken = async (req, res) => {
 
     console.log("accessToken:", accessToken_environment);
 
-    const accessToken = "AQRhhO6ht9spSUS1VK16J7gIeeExkBAoYWJLlTD1LkCN8TPAvxmP1H2oOYvTWDQB7289Pex1XEYhLi3pqEtN1-bMR2tcK3MPI7gFvivvXLD9DY9dJhCY0-2neJAlLXfX8I_nOMLMaes-fnZsw8-0rFdZHmp1A-fhFlIOsTIAfDduLl1lHxoQqsYph5UZGHqhJvcsXGuBTaH2UqFEyPY";
+    const accessToken = "AQQ8NnyAmFTQ2Swh4BxxFnIyx5oAB0r787Ywo8h51vtJLnNqsVJ1fDnC86dgWFZsjNZFwu80Wg8LRSzTxs7ecIQNzRz5lGKaBlR1epoGPIz0b8WGvTzALQ_e1fHzgU2wCvLrl4pVvhnQuZL6B7S4aDZ-lvQONAKD8ba5aYD6So60MwjYiwvfbUJi-ErsqREcrYLUv0UfFg-uu9lEFJg";
 
     console.log("accessToken:", accessToken);
 
