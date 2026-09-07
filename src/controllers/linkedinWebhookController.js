@@ -1956,7 +1956,7 @@ const getCompanyPosts = async (req, res) => {
 };
 */
 
-const getCompanyPosts = async (req, res) => {
+const getCompanyPosts_old = async (req, res) => {
   // const accessToken = process.env.LINKEDIN_ACCESS_TOKEN?.trim();
   // const accessToken = 'AQX9nMUN9mu0a7o3CWnLJdQ6Jy_1P9vx77t-BZYwDvH5t62Ed4N7Uc_6OCu3NiNxvIIucNRNEXjuZViPPMY_6-JrBYD1FXPEoDdha2ry0BtrlNCwP8IoZUSqYc_YAHiX91qZ5g-Q4HsWfgKPhu6OrPQpky7mgHfd0Nne0mrRyEhPFjuTgV3GA2rPOQIIvRPSQFF57Wpvz-KLkmr5vaDa4AsqNWDegE8ORlP-SGTRkQnh_bdDQE8gVqB_DZXz3ZOF5EpGUUI4dlhFaed9ytUH41xk5Q3cWNAoe7TBAXhXej0cJiKtRRkSa2gIRFwit-w27SX-ZS-32V3pDXsO-wGXlPT7d-jk7g';       // Must contain r_organization_social
   const accessToken = "AQVa4akHX5xyYxO64BSEiZ57dnqfhLkmFVlgfaT7MXqwgYJB3Rnmo9lufFmydUG-BEMlg8qX75v9m_ajE_eo2WALGPfd9fzFs3o42y4cdePfXgdykufuxD-SwFNBGmk8Z3jhdFBB0yPMdmaY1vGy0wJ7MbpiVOREdwMfNKjogJAnYdpjXwEjRZDj0Wrf7y4ZfWaTBX2kwbOvz2T6Znn85HZt4tOIOFlx1PN77BJK_-RAMsLuAXutel72Ef2ZByPevKPrV7E5GQgaydYjkTO5gNyRuWCyVantKRcuXvTopCOfEpkKa7-wxpPWjlQHl4yTuRyF8RisT6T9tEIeFCuLMDDVJ79ZtQ";
@@ -2428,6 +2428,71 @@ const linkedInOAuthCallback = async (req, res) => {
 
     });
 
+  }
+};
+
+
+const getCompanyPosts = async (req, res) => {
+  try {
+    const accessToken = process.env.LINKEDIN_ACCESS_TOKEN?.trim();
+
+    if (!accessToken) {
+      return res.status(500).json({
+        success: false,
+        message: "LINKEDIN_ACCESS_TOKEN is not configured"
+      });
+    }
+
+    const organizationUrn = "urn:li:organization:144819239";
+
+    const response = await axios.get(
+      "https://api.linkedin.com/rest/posts",
+      {
+        params: {
+          q: "author",
+          author: organizationUrn,
+          count: 10,
+          sortBy: "LAST_MODIFIED"
+        },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "X-Restli-Protocol-Version": "2.0.0",
+          "Linkedin-Version": "202607"
+        },
+        validateStatus: () => true
+      }
+    );
+
+    console.log("LinkedIn Posts status:", response.status);
+
+    console.log("LinkedIn Posts response:", JSON.stringify(response.data, null, 2));
+
+    if (response.status < 200 || response.status >= 300) {
+      return res.status(response.status).json({
+        success: false,
+        linkedinStatus: response.status,
+        linkedinResponse: response.data
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      organization: organizationUrn,
+      count: response.data.elements?.length || 0,
+      paging: response.data.paging,
+      posts: response.data.elements || []
+    });
+
+  } catch (error) {
+    console.error(
+      "LinkedIn company posts error:",
+      error.response?.data || error.message
+    );
+
+    return res.status(500).json({
+      success: false,
+      error: error.response?.data || error.message
+    });
   }
 };
 
