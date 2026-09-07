@@ -2040,7 +2040,7 @@ const getCompanyPosts = async (req, res) => {
     }
     */
 
-    const response = await axios.get(
+    const userResponse = await axios.get(
       "https://api.linkedin.com/v2/me",
       {
         headers: {
@@ -2050,10 +2050,10 @@ const getCompanyPosts = async (req, res) => {
       }
     );
 
-    return res.status(response.status).json({
-      success: response.status >= 200 && response.status < 300,
-      linkedinStatus: response.status,
-      data: response.data
+    return res.status(userResponse.status).json({
+      success: userResponse.status >= 200 && userResponse.status < 300,
+      linkedinStatus: userResponse.status,
+      data: userResponse.data
     });
 
     /*
