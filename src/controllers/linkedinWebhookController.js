@@ -1984,40 +1984,59 @@ const getCompanyPosts = async (req, res) => {
     console.log("Introspecting LinkedIn token...");
     console.log("params:", params.toString());
 
-    const response = await axios.post(
+    try {
+    const accessToken = process.env.LINKEDIN_ACCESS_TOKEN?.trim();
+
+    if (!accessToken) {
+      return res.status(500).json({
+        success: false,
+        message: "LINKEDIN_ACCESS_TOKEN is missing"
+      });
+    }
+
+    console.log("====================================");
+    console.log("LINKEDIN AUTH DEBUG");
+    console.log("====================================");
+
+    console.log("Token exists:", true);
+    console.log("Token length:", accessToken.length);
+    console.log(
+      "Token beginning:",
+      accessToken.substring(0, 12)
+    );
+    console.log(
+      "Token ending:",
+      accessToken.substring(accessToken.length - 12)
+    );
+
+    // -----------------------------------------
+    // TEST 1: Introspection
+    // -----------------------------------------
+
+    const params = new URLSearchParams();
+
+    params.append("client_id", process.env.LINKEDIN_CLIENT_ID?.trim());
+
+    params.append("client_secret", process.env.LINKEDIN_CLIENT_SECRET?.trim());
+
+    params.append("token", accessToken);
+
+    const introspectionResponse = await axios.post(
       "https://www.linkedin.com/oauth/v2/introspectToken",
-      // params.toString(),
-      {
-        "client_id": "7752cya07w6jkn",
-        "client_secret": "WPL_AP1.TCIB2YyZQv81ebuY./socUA==",
-        "token": "AQVa4akHX5xyYxO64BSEiZ57dnqfhLkmFVlgfaT7MXqwgYJB3Rnmo9lufFmydUG-BEMlg8qX75v9m_ajE_eo2WALGPfd9fzFs3o42y4cdePfXgdykufuxD-SwFNBGmk8Z3jhdFBB0yPMdmaY1vGy0wJ7MbpiVOREdwMfNKjogJAnYdpjXwEjRZDj0Wrf7y4ZfWaTBX2kwbOvz2T6Znn85HZt4tOIOFlx1PN77BJK_-RAMsLuAXutel72Ef2ZByPevKPrV7E5GQgaydYjkTO5gNyRuWCyVantKRcuXvTopCOfEpkKa7-wxpPWjlQHl4yTuRyF8RisT6T9tEIeFCuLMDDVJ79ZtQ"
-      },
+      params.toString(),
       {
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        }
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        validateStatus: () => true
       }
     );
 
-    console.log("========================================");
-    console.log("LINKEDIN TOKEN INTROSPECTION RESULT");
-    console.log("========================================");
+    // -----------------------------------------
+    // TEST 2: /v2/me
+    // -----------------------------------------
 
-    // console.log("Token introspection response:", JSON.stringify(response, null, 2));
-    console.log({
-      active: response.data.active,
-      status: response.data.status,
-      client_id: response.data.client_id,
-      auth_type: response.data.auth_type,
-      scope: response.data.scope,
-      created_at: response.data.created_at,
-      authorized_at: response.data.authorized_at,
-      expires_at: response.data.expires_at
-    });
-
-    /*
-    // 1. Test authenticated member
-    const userResponse = await axios.get(
+    const meResponse = await axios.get(
       "https://api.linkedin.com/v2/me",
       {
         headers: {
@@ -2027,33 +2046,44 @@ const getCompanyPosts = async (req, res) => {
       }
     );
 
-    console.log("LinkedIn userinfo status:", userResponse.status);
-    console.log("LinkedIn userinfo:", userResponse.data);
+    // -----------------------------------------
+    // TEST 3: /v2/userinfo
+    // -----------------------------------------
 
-    if (userResponse.status >= 400) {
-      return res.status(userResponse.status).json({
-        success: false,
-        step: "userinfo",
-        linkedinStatus: userResponse.status,
-        linkedinResponse: userResponse.data
-      });
-    }
-    */
-
-    const userResponse = await axios.get(
-      "https://api.linkedin.com/v2/me",
+    const userInfoResponse = await axios.get(
+      "https://api.linkedin.com/v2/userinfo",
       {
         headers: {
-          Authorization: `Bearer AQVa4akHX5xyYxO64BSEiZ57dnqfhLkmFVlgfaT7MXqwgYJB3Rnmo9lufFmydUG-BEMlg8qX75v9m_ajE_eo2WALGPfd9fzFs3o42y4cdePfXgdykufuxD-SwFNBGmk8Z3jhdFBB0yPMdmaY1vGy0wJ7MbpiVOREdwMfNKjogJAnYdpjXwEjRZDj0Wrf7y4ZfWaTBX2kwbOvz2T6Znn85HZt4tOIOFlx1PN77BJK_-RAMsLuAXutel72Ef2ZByPevKPrV7E5GQgaydYjkTO5gNyRuWCyVantKRcuXvTopCOfEpkKa7-wxpPWjlQHl4yTuRyF8RisT6T9tEIeFCuLMDDVJ79ZtQ`
+          Authorization: `Bearer ${accessToken}`
         },
         validateStatus: () => true
       }
     );
 
-    return res.status(userResponse.status).json({
-      success: userResponse.status >= 200 && userResponse.status < 300,
-      linkedinStatus: userResponse.status,
-      data: userResponse.data
+    return res.status(200).json({
+      success: true,
+
+      token: {
+        exists: true,
+        length: accessToken.length,
+        beginning: accessToken.substring(0, 12),
+        ending: accessToken.substring(accessToken.length - 12)
+      },
+
+      introspection: {
+        status: introspectionResponse.status,
+        data: introspectionResponse.data
+      },
+
+      me: {
+        status: meResponse.status,
+        data: meResponse.data
+      },
+
+      userinfo: {
+        status: userInfoResponse.status,
+        data: userInfoResponse.data
+      }
     });
 
     /*
