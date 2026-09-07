@@ -1801,7 +1801,7 @@ const testLinkedInUserInfo = async (req, res) => {
     );
 
     const response = await axios.get(
-      "https://api.linkedin.com/v2/me",
+      "https://api.linkedin.com/v2/userinfo",
       {
         headers: {
           Authorization: `Bearer ${accessToken}`
@@ -2017,7 +2017,7 @@ const getCompanyPosts = async (req, res) => {
 
     // 1. Test authenticated member
     const userResponse = await axios.get(
-      "https://api.linkedin.com/v2/userinfo",
+      "https://api.linkedin.com/v2/me",
       {
         headers: {
           Authorization: `Bearer ${accessToken}`
