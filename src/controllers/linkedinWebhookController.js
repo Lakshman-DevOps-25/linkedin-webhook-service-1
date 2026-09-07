@@ -2343,6 +2343,9 @@ const linkedInOAuthCallback = async (req, res) => {
       }
     );
 
+    console.log("========================================");
+    console.log("LinkedIn token response:", response);
+
     console.log("LinkedIn token response status:", response.status);
     console.log("LinkedIn token response:", response.data);
 
