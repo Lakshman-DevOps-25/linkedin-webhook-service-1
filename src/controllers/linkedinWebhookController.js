@@ -1,974 +1,1051 @@
 const axios = require("axios");
+const fs = require("fs");
+const path = require("path");
 
-const LinkedInData = require("../models/LinkedInData");
-
-/**
- * LinkedIn API configuration
- */
-const LINKEDIN_VERSION = "202608";
 const LINKEDIN_BASE_URL = "https://api.linkedin.com/rest";
 
+const ACCESS_TOKEN = process.env.LINKEDIN_ACCESS_TOKEN;
+const LINKEDIN_VERSION = "202608";
 
-const startLinkedInOAuth = (req, res) => {
+const ORGANIZATION_ID = process.env.LINKEDIN_ORGANIZATION_ID || "144819239";
+const ORGANIZATION_URN = `urn:li:organization:${ORGANIZATION_ID}`;
 
-  const clientId =
-    process.env.LINKEDIN_CLIENT_ID?.trim();
+// ============================================================
+// DIRECTORIES
+// ============================================================
 
-  const redirectUri =
-    "https://linkedin-webhook-service-1.onrender.com/api/v1/linkedin/oauth/callback";
+const MEDIA_ROOT = path.join(__dirname, "../../downloads/linkedin-media");
 
-  const scopes = [
-    "openid",
-    "profile",
-    "email",
-    "r_organization_admin",
-    "r_organization_social",
-    "w_organization_social"
-  ].join(" ");
-
-  const authorizationUrl =
-    "https://www.linkedin.com/oauth/v2/authorization" +
-    `?response_type=code` +
-    `&client_id=${encodeURIComponent(clientId)}` +
-    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-    `&state=browser-test-123` +
-    `&scope=${encodeURIComponent(scopes)}`;
-
-  return res.redirect(authorizationUrl);
-};
+if (!fs.existsSync(MEDIA_ROOT)) {
+    fs.mkdirSync(MEDIA_ROOT, {
+        recursive: true
+    });
+}
 
 
-const linkedInOAuthCallback = async (req, res) => {
+// ============================================================
+// COMMON HEADERS
+// ============================================================
 
-  try {
-    const {
-      code,
-      state,
-      error,
-      error_description
-    } = req.query;
+function getLinkedInHeaders(extraHeaders = {}) {
+    return {
+        Authorization: `Bearer ${ACCESS_TOKEN}`,
+        "LinkedIn-Version": LINKEDIN_VERSION,
+        "X-Restli-Protocol-Version": "2.0.0",
+        ...extraHeaders
+    };
+}
 
-    if (error) {
-      console.error("LinkedIn OAuth error:", error, error_description);
-      return res.status(400).json({
-        success: false,
-        error,
-        error_description
-      });
 
+// ============================================================
+// DATE FORMAT
+// dd-mm-yyyy H:m:s
+// ============================================================
+
+function formatDateTime(timestamp) {
+
+    if (!timestamp) {
+        return null;
     }
 
-    if (!code) {
-      console.error("LinkedIn OAuth error: Authorization code was not returned");
-      return res.status(400).json({
-        success: false,
-        message:
-          "Authorization code was not returned"
-      });
+    const date = new Date(Number(timestamp));
 
+    if (isNaN(date.getTime())) {
+        return null;
     }
 
-    // -----------------------------
-    // Verify state
-    // -----------------------------
+    const dd = String(date.getDate()).padStart(2, "0");
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const yyyy = date.getFullYear();
 
-    // const savedState = req.cookies.linkedin_oauth_state;
-    const savedState = "browser-test-123";
+    const H = date.getHours();
+    const m = date.getMinutes();
+    const s = date.getSeconds();
 
-    if (!savedState || savedState !== state) {
+    return `${dd}-${mm}-${yyyy} ${H}:${m}:${s}`;
+}
 
-      console.error("LinkedIn OAuth error: OAuth state mismatch");
-      return res.status(400).json({
-        success: false,
-        message:
-          "OAuth state mismatch"
-      });
 
-    }
+// ============================================================
+// DOWNLOAD DIRECTORY FOR EACH POST
+// ============================================================
 
-    // -----------------------------
-    // Get PKCE verifier
-    // -----------------------------
+function getPostMediaDirectory(postUrn) {
 
-    // const codeVerifier = req.cookies.linkedin_code_verifier;
-    // const codeVerifier = req.query.codeVerifier;
-    // console.log("PKCE code:", codeVerifier);
+    const safePostId = postUrn
+        .replace(/[^a-zA-Z0-9_-]/g, "_");
 
-    // if (!codeVerifier) {
-    //   console.error("LinkedIn OAuth error: PKCE code is missing");
-    //   return res.status(400).json({
-    //     success: false,
-    //     message:
-    //       "PKCE code is missing"
-    //   });
-    // }
-
-    const clientId = process.env.LINKEDIN_CLIENT_ID?.trim();
-
-    const clientSecret = process.env.LINKEDIN_CLIENT_SECRET?.trim();
-
-    const redirectUri = "https://linkedin-webhook-service-1.onrender.com/api/v1/linkedin/oauth/callback";
-
-    console.log("========== LINKEDIN OAUTH CONFIG ==========");
-    console.log("Client ID:", process.env.LINKEDIN_CLIENT_ID?.trim());
-    console.log("Client Secret exists:", !!process.env.LINKEDIN_CLIENT_SECRET);
-    console.log("Client Secret length:", process.env.LINKEDIN_CLIENT_SECRET?.trim().length);
-    console.log("Redirect URI:", process.env.LINKEDIN_REDIRECT_URI?.trim());
-    console.log("============================================");
-
-    // -----------------------------
-    // Exchange authorization code
-    // -----------------------------
-
-    const params = new URLSearchParams();
-
-    params.append("grant_type", "authorization_code");
-    params.append("code", code);
-    params.append("client_id", clientId);
-    params.append("client_secret", clientSecret);
-    params.append("redirect_uri", redirectUri);
-    // params.append("code_verifier", codeVerifier);
-
-    console.log("Exchanging authorization code for access token...");
-    console.log("params:", params.toString());
-
-    const response = await axios.post(
-      "https://www.linkedin.com/oauth/v2/accessToken",
-      params.toString(),
-      {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded"
-        },
-        validateStatus: () => true
-      }
+    const directory = path.join(
+        MEDIA_ROOT,
+        safePostId
     );
 
-    console.log("========================================");
-    console.log("LinkedIn token response:", response);
+    if (!fs.existsSync(directory)) {
+        fs.mkdirSync(directory, {
+            recursive: true
+        });
+    }
 
-    console.log("LinkedIn token response status:", response.status);
-    console.log("LinkedIn token response:", response.data);
+    return directory;
+}
+
+
+// ============================================================
+// DOWNLOAD FILE
+// ============================================================
+
+async function downloadFile(fileUrl, destinationPath) {
+
+    try {
+
+        console.log("----------------------------------------");
+        console.log("Downloading media");
+        console.log("URL:", fileUrl);
+        console.log("Destination:", destinationPath);
+
+        const response = await axios.get(fileUrl, {
+            responseType: "stream",
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity,
+            timeout: 120000
+        });
+
+        await new Promise((resolve, reject) => {
+
+            const writer = fs.createWriteStream(destinationPath);
+
+            response.data.pipe(writer);
+
+            writer.on("finish", resolve);
+            writer.on("error", reject);
+        });
+
+        console.log("MEDIA DOWNLOAD SUCCESS");
+        console.log(destinationPath);
+
+        return {
+            success: true,
+            localPath: destinationPath
+        };
+
+    } catch (error) {
+
+        console.error(
+            "MEDIA DOWNLOAD FAILED:",
+            error.response?.data || error.message
+        );
+
+        return {
+            success: false,
+            localPath: null,
+            error: error.response?.data || error.message
+        };
+    }
+}
+
+
+// ============================================================
+// GET COMPANY POSTS
+// ============================================================
+
+async function getCompanyPosts() {
+
+    try {
+
+        console.log("========================================");
+        console.log("GET COMPANY POSTS");
+        console.log("Organization:", ORGANIZATION_URN);
+        console.log("========================================");
+
+        if (!ACCESS_TOKEN) {
+            throw new Error(
+                "LINKEDIN_ACCESS_TOKEN environment variable is missing"
+            );
+        }
+
+        /*
+         * IMPORTANT:
+         *
+         * Encode the Organization URN exactly once.
+         */
+
+        const encodedOrganizationUrn =
+            encodeURIComponent(ORGANIZATION_URN);
+
+        const postsUrl =
+            `${LINKEDIN_BASE_URL}/posts` +
+            `?author=${encodedOrganizationUrn}` +
+            `&q=author` +
+            `&count=100` +
+            `&sortBy=LAST_MODIFIED`;
+
+        console.log("Posts URL:", postsUrl);
+
+        const response = await axios.get(postsUrl, {
+
+            headers: getLinkedInHeaders({
+                "X-RestLi-Method": "FINDER"
+            }),
+
+            validateStatus: () => true
+        });
+
+        console.log("Posts API status:", response.status);
+
+        if (response.status !== 200) {
+
+            console.error(
+                "Posts API error:",
+                response.data
+            );
+
+            return {
+                success: false,
+                status: response.status,
+                error: response.data
+            };
+        }
+
+        const elements = response.data.elements || [];
+
+        console.log(
+            `Found ${elements.length} organization posts`
+        );
+
+        const posts = [];
+
+        for (const post of elements) {
+
+            console.log("\n========================================");
+            console.log("PROCESSING POST:", post.id);
+            console.log("========================================");
+
+            const postData = await processPost(post);
+
+            posts.push(postData);
+        }
+
+        return {
+            success: true,
+            organization: ORGANIZATION_URN,
+            count: posts.length,
+            paging: response.data.paging || {},
+            posts
+        };
+
+    } catch (error) {
+
+        console.error(
+            "getCompanyPosts ERROR:",
+            error.response?.data || error.message
+        );
+
+        return {
+            success: false,
+            error: error.response?.data || error.message
+        };
+    }
+}
+
+
+// ============================================================
+// PROCESS INDIVIDUAL POST
+// ============================================================
+
+async function processPost(post) {
+
+    const postUrn = post.id;
+
+    /*
+     * --------------------------------------------------------
+     * POST INFORMATION
+     * --------------------------------------------------------
+     */
+
+    const postData = {
+
+        id: postUrn,
+
+        author: post.author,
+
+        /*
+         * For an organization post, LinkedIn returns the
+         * organization as author.
+         *
+         * The human admin who clicked "Post" is not normally
+         * included in the Posts API response.
+         */
+
+        authorName:
+            post.author === ORGANIZATION_URN
+                ? `Organization ${ORGANIZATION_ID}`
+                : post.author,
+
+        message: post.commentary || "",
+
+        visibility: post.visibility,
+
+        lifecycleState: post.lifecycleState,
+
+        createdAt: formatDateTime(post.createdAt),
+
+        publishedAt: formatDateTime(post.publishedAt),
+
+        lastModifiedAt:
+            formatDateTime(post.lastModifiedAt),
+
+        reactions: {
+            available: false,
+            count: 0,
+            items: []
+        },
+
+        comments: {
+            available: false,
+            count: 0,
+            items: []
+        },
+
+        media: []
+    };
+
+
+    // ========================================================
+    // REACTIONS
+    // ========================================================
+
+    try {
+
+        /*
+         * KEEP YOUR PREVIOUS WORKING REACTION FUNCTION HERE.
+         *
+         * Do NOT use the newer:
+         *
+         * /reactions(entity:...)
+         *
+         * implementation that returned 404 in your environment.
+         */
+
+        const reactionsResult =
+            await getPostReactions(postUrn);
+
+        if (reactionsResult) {
+
+            postData.reactions = reactionsResult;
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Reaction processing failed:",
+            error.response?.data || error.message
+        );
+
+        postData.reactions = {
+            available: false,
+            count: 0,
+            items: [],
+            reason:
+                "Unable to retrieve reactions"
+        };
+    }
+
+
+    // ========================================================
+    // COMMENTS
+    // ========================================================
+
+    try {
+
+        const commentsResult =
+            await getPostComments(postUrn);
+
+        if (commentsResult) {
+
+            postData.comments = commentsResult;
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Comment processing failed:",
+            error.response?.data || error.message
+        );
+
+        postData.comments = {
+            available: false,
+            count: 0,
+            items: [],
+            reason:
+                "Community Management API is not enabled"
+        };
+    }
+
+
+    // ========================================================
+    // MEDIA
+    // ========================================================
+
+    try {
+
+        const mediaResult =
+            await extractAndDownloadPostMedia(
+                post,
+                postUrn
+            );
+
+        postData.media = mediaResult;
+
+    } catch (error) {
+
+        console.error(
+            "Media processing failed:",
+            error.response?.data || error.message
+        );
+
+        postData.media = [];
+    }
+
+
+    return postData;
+}
+
+
+// ============================================================
+// COMMENTS
+// ============================================================
+
+async function getPostComments(postUrn) {
+
+    const encodedPostUrn =
+        encodeURIComponent(postUrn);
+
+    const commentsUrl =
+        `${LINKEDIN_BASE_URL}/socialActions/` +
+        `${encodedPostUrn}/comments`;
+
+    console.log("Comments URL:", commentsUrl);
+
+    const response = await axios.get(
+        commentsUrl,
+        {
+            headers: getLinkedInHeaders(),
+            validateStatus: () => true
+        }
+    );
+
+    console.log(
+        "Comments API status:",
+        response.status
+    );
+
+    if (response.status === 403) {
+
+        console.log(
+            "Comments unavailable - Community Management API permission"
+        );
+
+        return {
+            available: false,
+            count: 0,
+            items: [],
+            reason:
+                "Community Management API is not enabled"
+        };
+    }
 
     if (response.status !== 200) {
 
-      return res.status(response.status).json({
-        success: false,
-        linkedinStatus: response.status,
-        linkedinResponse: response.data
-      });
+        console.error(
+            "Comments API response:",
+            response.data
+        );
 
+        return {
+            available: false,
+            count: 0,
+            items: [],
+            reason: response.data?.message ||
+                "Comments API failed"
+        };
     }
 
-    const newAccessToken = response.data.access_token;
+    const elements =
+        response.data.elements || [];
 
-    console.log("========== NEW LINKEDIN TOKEN ==========");
-    console.log("Length:", newAccessToken.length);
-    console.log("Beginning:", newAccessToken.substring(0, 12));
-    console.log("Ending:", newAccessToken.slice(-12));
-    console.log("=========================================");
+    const comments = elements.map(comment => {
 
-    // -----------------------------
-    // Test the NEW token immediately
-    // -----------------------------
+        return {
 
-    const userInfoResponse =
-      await axios.get(
-        "https://api.linkedin.com/v2/userinfo",
-        {
-          headers: {
-            Authorization:
-              `Bearer ${newAccessToken}`
-          },
-          validateStatus: () => true
-        }
-      );
+            id: comment.$URN ||
+                comment.id ||
+                null,
 
-    return res.status(200).json({
+            actor:
+                comment.actor || null,
 
-      success:
-        userInfoResponse.status >= 200 &&
-        userInfoResponse.status < 300,
-
-      message:
-        "LinkedIn OAuth completed",
-
-      token: {
-        exists: !!newAccessToken,
-        length: newAccessToken?.length
-      },
-
-      oauth: {
-        status: response.status,
-        scope: response.data.scope,
-        expires_in: response.data.expires_in
-      },
-
-      userinfo: {
-        status: userInfoResponse.status,
-        data: userInfoResponse.data
-      }
-
-    });
-
-  } catch (error) {
-
-    console.error(
-      "LinkedIn OAuth callback error:",
-      error.response?.data ||
-      error.message
-    );
-
-    return res.status(500).json({
-
-      success: false,
-
-      error:
-        error.response?.data ||
-        error.message
-
-    });
-
-  }
-};
-
-
-/**
- * Common LinkedIn headers
- */
-const getLinkedInHeaders = (accessToken, finder = false) => {
-  const headers = {
-    Authorization: `Bearer ${accessToken}`,
-    "X-Restli-Protocol-Version": "2.0.0",
-    "Linkedin-Version": LINKEDIN_VERSION
-  };
-
-  if (finder) {
-    headers["X-RestLi-Method"] = "FINDER";
-  }
-
-  return headers;
-};
-
-
-/**
- * Convert LinkedIn timestamp
- *
- * Example:
- * 1788428087453
- *
- * Result:
- * 03-09-2026 12:24:47
- */
-const formatDateTime = (timestamp) => {
-  if (!timestamp) {
-    return null;
-  }
-
-  const date = new Date(Number(timestamp));
-
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  const pad = (value) =>
-    String(value).padStart(2, "0");
-
-  return (
-    `${pad(date.getDate())}-` +
-    `${pad(date.getMonth() + 1)}-` +
-    `${date.getFullYear()} ` +
-    `${pad(date.getHours())}:` +
-    `${pad(date.getMinutes())}:` +
-    `${pad(date.getSeconds())}`
-  );
-};
-
-
-/**
- * Get detailed post
- */
-const getPostDetails = async (
-  postUrn,
-  accessToken
-) => {
-  const encodedPostUrn =
-    encodeURIComponent(postUrn);
-
-  const url =
-    `${LINKEDIN_BASE_URL}/posts/${encodedPostUrn}`;
-
-  console.log("Post details URL:", url);
-
-  return await axios.get(url, {
-    headers: getLinkedInHeaders(accessToken),
-    validateStatus: () => true
-  });
-};
-
-
-/**
- * Get comments for a post
- *
- * LinkedIn:
- * GET /rest/socialActions/{shareUrn}/comments
- */
-const getPostComments = async (
-  postUrn,
-  accessToken
-) => {
-  const encodedPostUrn =
-    encodeURIComponent(postUrn);
-
-  const url =
-    `${LINKEDIN_BASE_URL}/socialActions/` +
-    `${encodedPostUrn}/comments`;
-
-  console.log("Comments URL:", url);
-
-  return await axios.get(url, {
-    headers: getLinkedInHeaders(accessToken),
-    validateStatus: () => true
-  });
-};
-
-
-/**
- * Get reactions for a post
- *
- * LinkedIn:
- * GET /rest/reactions/(entity:{shareUrn})?q=entity
- */
-const getPostReactions = async (
-  postUrn,
-  accessToken
-) => {
-  const encodedPostUrn =
-    encodeURIComponent(postUrn);
-
-  const url =
-    `${LINKEDIN_BASE_URL}/reactions` +
-    `(entity:${encodedPostUrn})` +
-    `?q=entity`;
-
-  console.log("Reactions URL:", url);
-
-  return await axios.get(url, {
-    headers: getLinkedInHeaders(accessToken),
-    validateStatus: () => true
-  });
-};
-
-
-/**
- * Extract a readable name from LinkedIn profile decoration.
- */
-const getProfileName = (profile) => {
-  if (!profile) {
-    return null;
-  }
-
-  /*
-   * Possible LinkedIn response formats.
-   */
-
-  if (
-    profile.firstName &&
-    profile.lastName
-  ) {
-    return `${profile.firstName} ${profile.lastName}`;
-  }
-
-  if (
-    profile.localizedFirstName &&
-    profile.localizedLastName
-  ) {
-    return (
-      `${profile.localizedFirstName} ` +
-      `${profile.localizedLastName}`
-    );
-  }
-
-  if (
-    profile.firstName?.localized &&
-    profile.lastName?.localized
-  ) {
-    const first =
-      Object.values(profile.firstName.localized)[0];
-
-    const last =
-      Object.values(profile.lastName.localized)[0];
-
-    return `${first} ${last}`;
-  }
-
-  return null;
-};
-
-
-/**
- * Try to extract member name from an API object.
- *
- * LinkedIn sometimes returns decorated actor~ data.
- */
-const getActorName = (item) => {
-  if (!item) {
-    return null;
-  }
-
-  // Direct name
-  if (item.name) {
-    return item.name;
-  }
-
-  // Decorated actor profile
-  if (item["actor~"]) {
-    const decorated =
-      item["actor~"];
-
-    const name =
-      getProfileName(decorated);
-
-    if (name) {
-      return name;
-    }
-
-    if (decorated.vanityName) {
-      return decorated.vanityName;
-    }
-  }
-
-  return null;
-};
-
-
-/**
- * Get member profile.
- *
- * IMPORTANT:
- * This may return 403 depending on the LinkedIn
- * application's available profile permissions.
- */
-const getMemberProfile = async (
-  personUrn,
-  accessToken
-) => {
-  if (
-    !personUrn ||
-    !personUrn.startsWith("urn:li:person:")
-  ) {
-    return null;
-  }
-
-  const personId =
-    personUrn.replace(
-      "urn:li:person:",
-      ""
-    );
-
-  const url =
-    `https://api.linkedin.com/v2/me`;
-
-  /*
-   * /v2/me only returns the authenticated member.
-   *
-   * We therefore DON'T blindly call /v2/me
-   * for another person's URN.
-   *
-   * Return null here when no decorated profile
-   * is available from the social-action response.
-   */
-  return {
-    personUrn,
-    personId,
-    name: null
-  };
-};
-
-
-/**
- * Extract media from a LinkedIn post
- */
-const extractPostMedia = (post) => {
-  const media = [];
-
-  const postMedia =
-    post.content?.media;
-
-  if (postMedia) {
-    media.push({
-      type: "MEDIA",
-      id: postMedia.id || null,
-      title: postMedia.title || null,
-      altText: postMedia.altText || null
-    });
-  }
-
-  /*
-   * Some post types may contain multi-image content.
-   */
-  if (Array.isArray(post.content?.multiImage?.images)) {
-    for (
-      const image of
-      post.content.multiImage.images
-    ) {
-      media.push({
-        type: "IMAGE",
-        id: image.id || null,
-        altText: image.altText || null
-      });
-    }
-  }
-
-  return media;
-};
-
-
-/**
- * GET COMPANY POSTS
- */
-const getCompanyPosts = async (req, res) => {
-  try {
-    const accessToken =
-      process.env.LINKEDIN_ACCESS_TOKEN?.trim();
-
-    const organizationUrn =
-      "urn:li:organization:144819239";
-
-    if (!accessToken) {
-      return res.status(500).json({
-        success: false,
-        message:
-          "LINKEDIN_ACCESS_TOKEN is not configured"
-      });
-    }
-
-
-    // =====================================================
-    // STEP 1: GET ORGANIZATION POSTS
-    // =====================================================
-
-    const encodedOrganizationUrn =
-      encodeURIComponent(organizationUrn);
-
-    const postsUrl =
-      `${LINKEDIN_BASE_URL}/posts` +
-      `?author=${encodedOrganizationUrn}` +
-      `&q=author` +
-      `&count=10` +
-      `&sortBy=LAST_MODIFIED`;
-
-    console.log(
-      "========== LINKEDIN COMPANY POSTS =========="
-    );
-
-    console.log(
-      "Organization:",
-      organizationUrn
-    );
-
-    console.log(
-      "Posts URL:",
-      postsUrl
-    );
-
-    console.log(
-      "Token length:",
-      accessToken.length
-    );
-
-    console.log(
-      "============================================"
-    );
-
-
-    const postsResponse =
-      await axios.get(
-        postsUrl,
-        {
-          headers:
-            getLinkedInHeaders(
-              accessToken,
-              true
-            ),
-
-          validateStatus:
-            () => true
-        }
-      );
-
-
-    if (
-      postsResponse.status < 200 ||
-      postsResponse.status >= 300
-    ) {
-      return res.status(
-        postsResponse.status
-      ).json({
-        success: false,
-
-        linkedinStatus:
-          postsResponse.status,
-
-        linkedinResponse:
-          postsResponse.data
-      });
-    }
-
-
-    const posts =
-      postsResponse.data.elements || [];
-
-
-    // =====================================================
-    // STEP 2: PROCESS EVERY POST
-    // =====================================================
-
-    const enrichedPosts = [];
-
-
-    for (const post of posts) {
-
-      console.log(
-        "============================================"
-      );
-
-      console.log(
-        "Processing post:",
-        post.id
-      );
-
-
-      // ===================================================
-      // STEP 2A: GET FULL POST
-      // ===================================================
-
-      const postDetailsResponse =
-        await getPostDetails(
-          post.id,
-          accessToken
-        );
-
-
-      let postDetails = post;
-
-
-      if (
-        postDetailsResponse.status >= 200 &&
-        postDetailsResponse.status < 300
-      ) {
-        postDetails =
-          postDetailsResponse.data;
-      }
-
-
-      // ===================================================
-      // STEP 2B: GET COMMENTS
-      // ===================================================
-
-      const commentsResponse =
-        await getPostComments(
-          post.id,
-          accessToken
-        );
-
-
-      let comments = [];
-
-
-      if (
-        commentsResponse.status >= 200 &&
-        commentsResponse.status < 300
-      ) {
-        comments =
-          commentsResponse.data.elements ||
-          [];
-      } else {
-        console.log(
-          "Comments API status:",
-          commentsResponse.status
-        );
-
-        console.log(
-          "Comments API response:",
-          commentsResponse.data
-        );
-      }
-
-
-      // ===================================================
-      // STEP 2C: GET REACTIONS
-      // ===================================================
-
-      const reactionsResponse =
-        await getPostReactions(
-          post.id,
-          accessToken
-        );
-
-
-      let reactions = [];
-
-
-      if (
-        reactionsResponse.status >= 200 &&
-        reactionsResponse.status < 300
-      ) {
-        reactions =
-          reactionsResponse.data.elements ||
-          [];
-      } else {
-        console.log(
-          "Reactions API status:",
-          reactionsResponse.status
-        );
-
-        console.log(
-          "Reactions API response:",
-          reactionsResponse.data
-        );
-      }
-
-
-      // ===================================================
-      // STEP 2D: PROCESS COMMENTS
-      // ===================================================
-
-      const formattedComments =
-        comments.map(comment => {
-
-          const actor =
-            comment.actor || null;
-
-          const actorName =
-            getActorName(comment);
-
-
-          return {
-            id:
-              comment.id || null,
-
-            commentUrn:
-              comment.commentUrn || null,
-
-            commenterUrn:
-              actor,
-
-            commenterName:
-              actorName,
+            actorName:
+                comment.actor || null,
 
             message:
-              comment.message?.text ||
-              comment.message ||
-              null,
+                comment.message?.text ||
+                comment.commentary ||
+                "",
 
             createdAt:
-              formatDateTime(
-                comment.created?.time
-              ),
+                formatDateTime(
+                    comment.created?.time
+                ),
 
             lastModifiedAt:
-              formatDateTime(
-                comment.lastModified?.time
-              ),
+                formatDateTime(
+                    comment.lastModified?.time
+                )
+        };
+    });
 
-            parentComment:
-              comment.parentComment ||
-              null,
+    return {
 
-            media:
-              comment.content || []
-          };
-        });
+        available: true,
 
+        count: comments.length,
 
-      // ===================================================
-      // STEP 2E: PROCESS REACTIONS
-      // ===================================================
-
-      const formattedReactions =
-        reactions.map(reaction => {
-
-          const actor =
-            reaction.created?.actor ||
-            reaction.actor ||
-            null;
-
-          const actorName =
-            getActorName(reaction);
+        items: comments
+    };
+}
 
 
-          return {
-            id:
-              reaction.id || null,
+// ============================================================
+// REACTIONS
+// ============================================================
 
-            reactionType:
-              reaction.reactionType ||
-              null,
+async function getPostReactions(postUrn) {
 
-            reactorUrn:
-              actor,
+    /*
+     * IMPORTANT:
+     *
+     * Put the exact reaction implementation that was working
+     * in your previous generated code here.
+     *
+     * The current code intentionally does not use:
+     *
+     * /reactions(entity:urn...)
+     *
+     * because your latest test returned:
+     *
+     * 404 RESOURCE_NOT_FOUND
+     */
 
-            reactorName:
-              actorName,
+    try {
 
-            createdAt:
-              formatDateTime(
-                reaction.created?.time
-              ),
+        /*
+         * Example:
+         *
+         * If your previous implementation already has a working
+         * LinkedIn reactions request, keep that request here.
+         */
 
-            lastModifiedAt:
-              formatDateTime(
-                reaction.lastModified?.time
-              ),
+        const encodedPostUrn =
+            encodeURIComponent(postUrn);
 
-            root:
-              reaction.root ||
-              null
-          };
-        });
+        /*
+         * If your earlier working implementation used another
+         * endpoint, replace ONLY the URL below with that exact
+         * endpoint.
+         */
 
+        const reactionsUrl =
+            `${LINKEDIN_BASE_URL}/socialMetadata/` +
+            `${encodedPostUrn}`;
 
-      // ===================================================
-      // STEP 2F: PROCESS MEDIA
-      // ===================================================
-
-      const media =
-        extractPostMedia(
-          postDetails
+        console.log(
+            "Reactions/Social Metadata URL:",
+            reactionsUrl
         );
 
+        const response = await axios.get(
+            reactionsUrl,
+            {
+                headers: getLinkedInHeaders(),
+                validateStatus: () => true
+            }
+        );
 
-      // ===================================================
-      // STEP 2G: POST AUTHOR
-      // ===================================================
+        console.log(
+            "Reactions API status:",
+            response.status
+        );
 
-      const postAuthorUrn =
-        postDetails.author ||
-        null;
+        if (
+            response.status !== 200 &&
+            response.status !== 207
+        ) {
+
+            console.error(
+                "Reactions API response:",
+                response.data
+            );
+
+            return {
+                available: false,
+                count: 0,
+                items: [],
+                reason:
+                    response.data?.message ||
+                    "Unable to retrieve reactions"
+            };
+        }
+
+        const elements =
+            response.data?.elements || [];
+
+        const reactions =
+            elements.map(reaction => {
+
+                return {
+
+                    id:
+                        reaction.id ||
+                        reaction.$URN ||
+                        null,
+
+                    actor:
+                        reaction.actor ||
+                        reaction.reactor ||
+                        null,
+
+                    actorName:
+                        reaction.actor ||
+                        reaction.reactor ||
+                        null,
+
+                    reactionType:
+                        reaction.reactionType ||
+                        reaction.type ||
+                        null,
+
+                    createdAt:
+                        formatDateTime(
+                            reaction.created?.time ||
+                            reaction.createdAt
+                        )
+                };
+            });
+
+        return {
+
+            available: true,
+
+            count: reactions.length,
+
+            items: reactions
+        };
+
+    } catch (error) {
+
+        console.error(
+            "getPostReactions ERROR:",
+            error.response?.data ||
+            error.message
+        );
+
+        return {
+
+            available: false,
+
+            count: 0,
+
+            items: [],
+
+            reason:
+                error.response?.data?.message ||
+                error.message
+        };
+    }
+}
 
 
-      /*
-       * For an organization post:
-       *
-       * author =
-       * urn:li:organization:144819239
-       *
-       * Therefore the publisher is the company page.
-       *
-       * If LinkedIn returns a person URN,
-       * the post was authored by that member.
-       */
+// ============================================================
+// EXTRACT MEDIA + DOWNLOAD
+// ============================================================
 
-      let postAuthorName = null;
+async function extractAndDownloadPostMedia(
+    post,
+    postUrn
+) {
 
-      if (
-        postAuthorUrn ===
-        organizationUrn
-      ) {
-        postAuthorName =
-          "Organization: " +
-          organizationUrn;
-      }
+    const media = [];
 
+    /*
+     * --------------------------------------------------------
+     * 1. Extract media URNs from Posts API response
+     * --------------------------------------------------------
+     */
 
-      // ===================================================
-      // STEP 3: BUILD FINAL POST OBJECT
-      // ===================================================
+    const mediaContent =
+        post.content?.media;
 
-      enrichedPosts.push({
+    if (!mediaContent) {
 
-        id:
-          postDetails.id || null,
+        console.log(
+            "No media found in post:",
+            postUrn
+        );
 
-        author:
-          postAuthorUrn,
-
-        authorName:
-          postAuthorName,
-
-        message:
-          postDetails.commentary ||
-          null,
-
-        visibility:
-          postDetails.visibility ||
-          null,
-
-        lifecycleState:
-          postDetails.lifecycleState ||
-          null,
-
-        createdAt:
-          formatDateTime(
-            postDetails.createdAt
-          ),
-
-        publishedAt:
-          formatDateTime(
-            postDetails.publishedAt
-          ),
-
-        lastModifiedAt:
-          formatDateTime(
-            postDetails.lastModifiedAt
-          ),
-
-        media,
-
-        reactions:
-          formattedReactions,
-
-        reactionCount:
-          formattedReactions.length,
-
-        comments:
-          formattedComments,
-
-        commentCount:
-          formattedComments.length
-      });
+        return media;
     }
 
 
-    // =====================================================
-    // STEP 4: RETURN RESPONSE
-    // =====================================================
+    /*
+     * LinkedIn can return media IDs such as:
+     *
+     * urn:li:image:...
+     * urn:li:video:...
+     * urn:li:document:...
+     */
 
-    return res.status(200).json({
+    const mediaUrn =
+        mediaContent.id ||
+        mediaContent.originalUrl ||
+        null;
 
-      success: true,
+    if (!mediaUrn) {
 
-      organization:
-        organizationUrn,
+        console.log(
+            "Media object found but no media ID:",
+            mediaContent
+        );
 
-      count:
-        enrichedPosts.length,
-
-      posts:
-        enrichedPosts
-    });
+        return media;
+    }
 
 
-  } catch (error) {
-
-    console.error(
-      "LinkedIn Company Posts error:",
-      error.response?.data ||
-      error.message
+    console.log(
+        "Media URN:",
+        mediaUrn
     );
 
-    return res.status(500).json({
 
-      success: false,
+    // ========================================================
+    // 2. GET MEDIA DETAILS
+    // ========================================================
 
-      error:
-        error.response?.data ||
-        error.message
+    let mediaDetails = null;
+
+    try {
+
+        mediaDetails =
+            await getMediaDetails(mediaUrn);
+
+    } catch (error) {
+
+        console.error(
+            "Media metadata failed:",
+            error.response?.data ||
+            error.message
+        );
+    }
+
+
+    /*
+     * --------------------------------------------------------
+     * 3. Determine download URL
+     * --------------------------------------------------------
+     */
+
+    const downloadUrl =
+        mediaDetails?.downloadUrl ||
+        mediaDetails?.downloadUrlExpiresAt
+            ? mediaDetails.downloadUrl
+            : mediaDetails?.url ||
+              mediaContent?.originalUrl ||
+              null;
+
+
+    /*
+     * If the previous implementation already returned a
+     * working download URL, this code will use it.
+     */
+
+    if (!downloadUrl) {
+
+        console.log(
+            "No downloadable URL available for:",
+            mediaUrn
+        );
+
+        media.push({
+
+            id: mediaUrn,
+
+            type: getMediaType(mediaUrn),
+
+            downloaded: false,
+
+            localPath: null,
+
+            reason:
+                "LinkedIn did not provide a downloadable media URL"
+        });
+
+        return media;
+    }
+
+
+    // ========================================================
+    // 4. DOWNLOAD TO LOCAL SYSTEM
+    // ========================================================
+
+    const mediaType =
+        getMediaType(mediaUrn);
+
+    const extension =
+        getFileExtension(
+            mediaType,
+            mediaDetails
+        );
+
+    const safeMediaId =
+        mediaUrn
+            .replace(/[^a-zA-Z0-9_-]/g, "_");
+
+    const fileName =
+        `${safeMediaId}${extension}`;
+
+    const postDirectory =
+        getPostMediaDirectory(postUrn);
+
+    const localPath =
+        path.join(
+            postDirectory,
+            fileName
+        );
+
+
+    const downloadResult =
+        await downloadFile(
+            downloadUrl,
+            localPath
+        );
+
+
+    media.push({
+
+        id: mediaUrn,
+
+        type: mediaType,
+
+        downloadUrl,
+
+        downloaded:
+            downloadResult.success,
+
+        localPath:
+            downloadResult.localPath,
+
+        fileName,
+
+        error:
+            downloadResult.error || null
     });
-  }
-};
 
 
-module.exports = {
-  startLinkedInOAuth, linkedInOAuthCallback, getCompanyPosts
+    return media;
+}
+
+
+// ============================================================
+// MEDIA DETAILS
+// ============================================================
+
+async function getMediaDetails(mediaUrn) {
+
+    const encodedMediaUrn =
+        encodeURIComponent(mediaUrn);
+
+    /*
+     * Keep this compatible with the media endpoint that was
+     * already working in your previous implementation.
+     */
+
+    let endpoint;
+
+    if (mediaUrn.startsWith("urn:li:image:")) {
+
+        endpoint =
+            `${LINKEDIN_BASE_URL}/images/` +
+            `${encodedMediaUrn}`;
+
+    } else if (
+        mediaUrn.startsWith("urn:li:video:")
+    ) {
+
+        endpoint =
+            `${LINKEDIN_BASE_URL}/videos/` +
+            `${encodedMediaUrn}`;
+
+    } else if (
+        mediaUrn.startsWith("urn:li:document:")
+    ) {
+
+        endpoint =
+            `${LINKEDIN_BASE_URL}/documents/` +
+            `${encodedMediaUrn}`;
+
+    } else {
+
+        throw new Error(
+            `Unsupported LinkedIn media URN: ${mediaUrn}`
+        );
+    }
+
+
+    console.log(
+        "Media details URL:",
+        endpoint
+    );
+
+    const response = await axios.get(
+        endpoint,
+        {
+            headers: getLinkedInHeaders(),
+            validateStatus: () => true
+        }
+    );
+
+
+    if (response.status !== 200) {
+
+        console.error(
+            "Media details response:",
+            response.data
+        );
+
+        throw new Error(
+            response.data?.message ||
+            `Media API returned ${response.status}`
+        );
+    }
+
+
+    /*
+     * Normalize the response so the download function doesn't
+     * need to know which media API returned it.
+     */
+
+    return {
+
+        id: mediaUrn,
+
+        downloadUrl:
+            response.data?.downloadUrl ||
+            response.data?.downloadUrlExpiresAt ||
+            response.data?.url ||
+            response.data?.downloadUrl,
+
+        raw:
+            response.data
+    };
+}
+
+
+// ============================================================
+// MEDIA TYPE
+// ============================================================
+
+function getMediaType(mediaUrn) {
+
+    if (!mediaUrn) {
+        return "unknown";
+    }
+
+    if (mediaUrn.includes(":image:")) {
+        return "image";
+    }
+
+    if (mediaUrn.includes(":video:")) {
+        return "video";
+    }
+
+    if (mediaUrn.includes(":document:")) {
+        return "document";
+    }
+
+    return "unknown";
+}
+
+
+// ============================================================
+// FILE EXTENSION
+// ============================================================
+
+function getFileExtension(
+    mediaType,
+    mediaDetails
+) {
+
+    const url =
+        mediaDetails?.downloadUrl ||
+        mediaDetails?.url ||
+        "";
+
+    const cleanUrl =
+        url.split("?")[0];
+
+    const ext =
+        path.extname(cleanUrl);
+
+    if (ext && ext.length <= 6) {
+        return ext;
+    }
+
+
+    switch (mediaType) {
+
+        case "image":
+            return ".jpg";
+
+        case "video":
+            return ".mp4";
+
+        case "document":
+            return ".pdf";
+
+        default:
+            return ".bin";
+    }
+}
+
+
+// ============================================================
+// EXPRESS CONTROLLER
+// ============================================================
+
+exports.getCompanyPosts = async (req, res) => {
+
+    try {
+
+        const result =
+            await getCompanyPosts();
+
+        return res.status(
+            result.success ? 200 : 500
+        ).json(result);
+
+    } catch (error) {
+
+        console.error(
+            "Company posts controller error:",
+            error
+        );
+
+        return res.status(500).json({
+
+            success: false,
+
+            error:
+                error.response?.data ||
+                error.message
+        });
+    }
 };
