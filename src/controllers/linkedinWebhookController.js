@@ -27,13 +27,34 @@ if (!fs.existsSync(MEDIA_ROOT)) {
 // COMMON HEADERS
 // ============================================================
 
+// function getLinkedInHeaders(extraHeaders = {}) {
+//     return {
+//         Authorization: `Bearer ${ACCESS_TOKEN}`,
+//         "LinkedIn-Version": LINKEDIN_VERSION,
+//         "X-Restli-Protocol-Version": "2.0.0",
+//         ...extraHeaders
+//     };
+// }
+
 function getLinkedInHeaders(extraHeaders = {}) {
-    return {
-        Authorization: `Bearer ${ACCESS_TOKEN}`,
-        "LinkedIn-Version": LINKEDIN_VERSION,
-        "X-Restli-Protocol-Version": "2.0.0",
-        ...extraHeaders
-    };
+  const headers = {
+    Authorization: `Bearer ${LINKEDIN_ACCESS_TOKEN}`,
+    "Linkedin-Version": "202608",
+    "X-Restli-Protocol-Version": "2.0.0"
+  };
+
+  console.log("LinkedIn API Headers:");
+  console.log({
+    "Linkedin-Version": headers["Linkedin-Version"],
+    "X-Restli-Protocol-Version":
+      headers["X-Restli-Protocol-Version"],
+    Authorization:
+      headers.Authorization
+        ? "Bearer ********"
+        : "MISSING"
+  });
+
+  return headers;
 }
 
 
@@ -326,27 +347,24 @@ async function processPost(post) {
          * implementation that returned 404 in your environment.
          */
 
-        const reactionsResult =
+        const reactions =
             await getPostReactions(postUrn);
 
-        if (reactionsResult) {
-
-            postData.reactions = reactionsResult;
-        }
+        postData.reactions =
+            reactions;
 
     } catch (error) {
 
         console.error(
             "Reaction processing failed:",
-            error.response?.data || error.message
+            error.response?.data ||
+            error.message
         );
 
         postData.reactions = {
             available: false,
             count: 0,
-            items: [],
-            reason:
-                "Unable to retrieve reactions"
+            items: []
         };
     }
 
@@ -665,121 +683,64 @@ async function getPostComments(postUrn) {
 // }
 
 async function getPostReactions(postUrn) {
+  try {
+    console.log("========================================");
+    console.log("GET POST REACTIONS");
+    console.log("Post URN:", postUrn);
+    console.log("========================================");
 
-    try {
+    const reactionsUrl =
+      `${LINKEDIN_BASE_URL}/reactions` +
+      `(entity:${postUrn})` +
+      `?q=entity&sort=(value:REVERSE_CHRONOLOGICAL)`;
 
-        console.log("========================================");
-        console.log("GET POST REACTIONS");
-        console.log("Post URN:", postUrn);
-        console.log("========================================");
+    console.log("Reactions URL:", reactionsUrl);
 
-        /*
-         * IMPORTANT:
-         *
-         * Do NOT encode the entire post URN with
-         * encodeURIComponent().
-         *
-         * LinkedIn Rest.li path syntax expects the
-         * entity URN inside:
-         *
-         * /reactions/(entity:{entityUrn})
-         */
+    const response = await axios.get(reactionsUrl, {
+      headers: getLinkedInHeaders(),
+      validateStatus: () => true
+    });
 
-        const reactionsUrl =
-            `${LINKEDIN_BASE_URL}/reactions` +
-            `(entity:${postUrn})` +
-            `?q=entity`;
+    console.log("Reactions API status:", response.status);
 
-        console.log(
-            "Reactions URL:",
-            reactionsUrl
-        );
+    console.log(
+      "Reactions API response:",
+      JSON.stringify(response.data, null, 2)
+    );
 
-
-        const response = await axios.get(
-            reactionsUrl,
-            {
-                headers: getLinkedInHeaders(),
-
-                validateStatus: () => true
-            }
-        );
-
-
-        console.log(
-            "Reactions API status:",
-            response.status
-        );
-
-
-        console.log(
-            "Reactions API response:",
-            JSON.stringify(
-                response.data,
-                null,
-                2
-            )
-        );
-
-
-        if (response.status !== 200) {
-
-            return {
-                available: false,
-                count: 0,
-                items: [],
-                reason:
-                    response.data?.message ||
-                    "Unable to retrieve reactions"
-            };
-        }
-
-
-        const reactions =
-            response.data?.elements || [];
-
-
-        console.log(
-            "Reactions found:",
-            reactions.length
-        );
-
-
-        return {
-
-            available: true,
-
-            count:
-                reactions.length,
-
-            items:
-                reactions
-
-        };
-
-    } catch (error) {
-
-        console.error(
-            "getPostReactions ERROR:",
-            error.response?.data ||
-            error.message
-        );
-
-
-        return {
-
-            available: false,
-
-            count: 0,
-
-            items: [],
-
-            reason:
-                error.response?.data ||
-                error.message
-
-        };
+    if (response.status !== 200) {
+      return {
+        available: false,
+        count: 0,
+        items: [],
+        reason:
+          response.data?.message ||
+          "Unable to retrieve reactions"
+      };
     }
+
+    const reactions = response.data?.elements || [];
+
+    return {
+      available: true,
+      count: reactions.length,
+      items: reactions
+    };
+
+  } catch (error) {
+    console.error(
+      "getPostReactions ERROR:",
+      error.response?.data || error.message
+    );
+
+    return {
+      available: false,
+      count: 0,
+      items: [],
+      reason:
+        error.response?.data || error.message
+    };
+  }
 }
 
 
