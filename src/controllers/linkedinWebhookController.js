@@ -2459,11 +2459,14 @@ const linkedInOAuthCallback = async (req, res) => {
 };
 
 
+
 const getCompanyPosts = async (req, res) => {
   try {
-    const accessToken = process.env.LINKEDIN_ACCESS_TOKEN?.trim();
+    const accessToken =
+      process.env.LINKEDIN_ACCESS_TOKEN?.trim();
 
-    const organizationUrn = "urn:li:organization:144819239";
+    const organizationUrn =
+      "urn:li:organization:144819239";
 
     if (!accessToken) {
       return res.status(500).json({
@@ -2475,8 +2478,14 @@ const getCompanyPosts = async (req, res) => {
     console.log("========== LINKEDIN POSTS ==========");
     console.log("Token exists:", !!accessToken);
     console.log("Token length:", accessToken.length);
-    console.log("Token beginning:", accessToken.substring(0, 12));
-    console.log("Token ending:", accessToken.slice(-12));
+    console.log(
+      "Token beginning:",
+      accessToken.substring(0, 12)
+    );
+    console.log(
+      "Token ending:",
+      accessToken.slice(-12)
+    );
     console.log("Organization:", organizationUrn);
     console.log("====================================");
 
@@ -2485,9 +2494,7 @@ const getCompanyPosts = async (req, res) => {
       {
         params: {
           q: "author",
-          author: `${encodeURIComponent(organizationUrn)}`,
-          // count: 10,
-          // sortBy: "LAST_MODIFIED"
+          author: organizationUrn
         },
 
         headers: {
@@ -2501,9 +2508,15 @@ const getCompanyPosts = async (req, res) => {
       }
     );
 
-    console.log("LinkedIn Posts status:", response.status);
+    console.log(
+      "LinkedIn Posts status:",
+      response.status
+    );
 
-    console.log("LinkedIn Posts response:", JSON.stringify(response.data, null, 2));
+    console.log(
+      "LinkedIn Posts response:",
+      JSON.stringify(response.data, null, 2)
+    );
 
     if (response.status < 200 || response.status >= 300) {
       return res.status(response.status).json({
@@ -2517,14 +2530,22 @@ const getCompanyPosts = async (req, res) => {
       success: true,
       organization: organizationUrn,
       count: response.data.elements?.length || 0,
-      paging: response.data.paging,
+      paging: response.data.paging || null,
       posts: response.data.elements || []
     });
 
   } catch (error) {
-    console.error("LinkedIn Posts error:", error.response?.data || error.message);
+    console.error(
+      "LinkedIn Posts error:",
+      error.response?.data || error.message
+    );
 
-    return res.status(500).json({success: false, error: error.response?.data || error.message});
+    return res.status(500).json({
+      success: false,
+      error:
+        error.response?.data ||
+        error.message
+    });
   }
 };
 
