@@ -2463,9 +2463,6 @@ const getCompanyPosts = async (req, res) => {
   try {
     const accessToken = process.env.LINKEDIN_ACCESS_TOKEN?.trim();
 
-    console.log("========== LINKEDIN POSTS TEST ==========");
-    console.log("Access token", accessToken);
-
     const organizationUrn = "urn:li:organization:144819239";
 
     if (!accessToken) {
@@ -2478,14 +2475,8 @@ const getCompanyPosts = async (req, res) => {
     console.log("========== LINKEDIN POSTS ==========");
     console.log("Token exists:", !!accessToken);
     console.log("Token length:", accessToken.length);
-    console.log(
-      "Token beginning:",
-      accessToken.substring(0, 12)
-    );
-    console.log(
-      "Token ending:",
-      accessToken.slice(-12)
-    );
+    console.log("Token beginning:", accessToken.substring(0, 12));
+    console.log("Token ending:", accessToken.slice(-12));
     console.log("Organization:", organizationUrn);
     console.log("====================================");
 
@@ -2502,6 +2493,7 @@ const getCompanyPosts = async (req, res) => {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           "X-Restli-Protocol-Version": "2.0.0",
+          "X-RestLi-Method": "FINDER",
           "Linkedin-Version": "202608"
         },
 
@@ -2509,36 +2501,30 @@ const getCompanyPosts = async (req, res) => {
       }
     );
 
-    console.log(
-      "LinkedIn Posts status:",
-      response.status
-    );
+    console.log("LinkedIn Posts status:", response.status);
 
-    console.log(
-      "LinkedIn Posts response:",
-      JSON.stringify(response.data, null, 2)
-    );
+    console.log("LinkedIn Posts response:", JSON.stringify(response.data, null, 2));
 
-    return res.status(response.status).json({
-      success:
-        response.status >= 200 &&
-        response.status < 300,
+    if (response.status < 200 || response.status >= 300) {
+      return res.status(response.status).json({
+        success: false,
+        linkedinStatus: response.status,
+        linkedinResponse: response.data
+      });
+    }
 
-      linkedinStatus: response.status,
+    return res.status(200).json({
+      success: true,
       organization: organizationUrn,
-      data: response.data
+      count: response.data.elements?.length || 0,
+      paging: response.data.paging,
+      posts: response.data.elements || []
     });
 
   } catch (error) {
-    console.error(
-      "LinkedIn Posts error:",
-      error.response?.data || error.message
-    );
+    console.error("LinkedIn Posts error:", error.response?.data || error.message);
 
-    return res.status(500).json({
-      success: false,
-      error: error.response?.data || error.message
-    });
+    return res.status(500).json({success: false, error: error.response?.data || error.message});
   }
 };
 
@@ -2549,7 +2535,7 @@ const debugStoredToken = async (req, res) => {
 
     console.log("accessToken:", accessToken_environment);
 
-    const accessToken = "AQQ8NnyAmFTQ2Swh4BxxFnIyx5oAB0r787Ywo8h51vtJLnNqsVJ1fDnC86dgWFZsjNZFwu80Wg8LRSzTxs7ecIQNzRz5lGKaBlR1epoGPIz0b8WGvTzALQ_e1fHzgU2wCvLrl4pVvhnQuZL6B7S4aDZ-lvQONAKD8ba5aYD6So60MwjYiwvfbUJi-ErsqREcrYLUv0UfFg-uu9lEFJg";
+    const accessToken = "AQXugNSyQGmFPf_ZXhVVrXU3gCBEZ722lMvsai-GX9fDbZ-20Fkxv4nETiBerpV91YwecALXQOwsWo3aB_YlL-eIlLrjbjCHA3xQmth8iQ3DKtUJrxUboybXbbj-dCRSaWr4lkZB3M78WYdYOjZPbo1VPmhgggmBt_8hw53Dz3KVM7ovA-wi3JpG0cidOTIZ6gqBzzh-gZNziB9w5M1Ke_mU545yadPHU9xh3DvpanFajB7xMCQXzha6Z_u4j58jLRabkgFXLWhrdiCsYvnxON57YNKbobYyPXjK208kE-s80Yj2Y6LhxJxqZM7ezq8h-FTbgKxP1U24TniGCo37kHEF4dYzJA";
 
     console.log("accessToken:", accessToken);
 
