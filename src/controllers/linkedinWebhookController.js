@@ -2460,7 +2460,7 @@ const linkedInOAuthCallback = async (req, res) => {
 
 
 
-const getCompanyPosts_old = async (req, res) => {
+const getCompanyPosts_old_2 = async (req, res) => {
   try {
     const accessToken =
       process.env.LINKEDIN_ACCESS_TOKEN?.trim();
