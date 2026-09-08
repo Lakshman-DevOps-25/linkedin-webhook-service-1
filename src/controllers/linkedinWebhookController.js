@@ -2388,6 +2388,12 @@ const linkedInOAuthCallback = async (req, res) => {
 
     const newAccessToken = response.data.access_token;
 
+    console.log("========== NEW LINKEDIN TOKEN ==========");
+    console.log("Length:", newAccessToken.length);
+    console.log("Beginning:", newAccessToken.substring(0, 12));
+    console.log("Ending:", newAccessToken.slice(-12));
+    console.log("=========================================");
+
     // -----------------------------
     // Test the NEW token immediately
     // -----------------------------
