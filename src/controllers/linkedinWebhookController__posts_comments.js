@@ -2714,28 +2714,35 @@ const getPostDetails = async (postUrn, accessToken) => {
 //   });
 // };
 
-const getPostReactions = async (postUrn, accessToken) => {
-  const encodedPostUrn =
-    encodeURIComponent(postUrn);
+async function getPostReactions(postUrn) {
 
-  const url =
-    `https://api.linkedin.com/rest/reactions/` +
-    `(entity:${encodedPostUrn})` +
-    `?q=entity`;
+    const encodedPostUrn =
+        encodeURIComponent(postUrn);
 
-  console.log("Reactions URL:", url);
+    const reactionsUrl =
+        `${LINKEDIN_BASE_URL}/reactions` +
+        `(entity:${encodedPostUrn})` +
+        `?q=entity`;
 
-  const response = await axios.get(url, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "X-Restli-Protocol-Version": "2.0.0",
-      "Linkedin-Version": "202608"
-    },
-    validateStatus: () => true
-  });
+    const response = await axios.get(
+        reactionsUrl,
+        {
+            headers: getLinkedInHeaders(),
+            validateStatus: () => true
+        }
+    );
 
-  return response;
-};
+    if (response.status !== 200) {
+        console.error(
+            "Reactions API response:",
+            response.data
+        );
+
+        return [];
+    }
+
+    return response.data.elements || [];
+}
 
 const debugStoredToken = async (req, res) => {
   try {
