@@ -148,7 +148,7 @@ async function downloadFile(fileUrl, destinationPath) {
 // GET COMPANY POSTS
 // ============================================================
 
-async function getCompanyPosts() {
+async function fetchCompanyPosts() {
 
     try {
 
@@ -1025,12 +1025,9 @@ const getCompanyPosts = (req, res) => {
 
     try {
 
-        const result =
-            await getCompanyPosts();
+        const result = await fetchCompanyPosts();
 
-        return res.status(
-            result.success ? 200 : 500
-        ).json(result);
+        return res.status(result.success ? 200 : 500).json(result);
 
     } catch (error) {
 
