@@ -1021,7 +1021,7 @@ function getFileExtension(
 // EXPRESS CONTROLLER
 // ============================================================
 
-exports.getCompanyPosts = async (req, res) => {
+const getCompanyPosts = (req, res) => {
 
     try {
 
@@ -1049,3 +1049,227 @@ exports.getCompanyPosts = async (req, res) => {
         });
     }
 };
+
+const startLinkedInOAuth = (req, res) => {
+
+  const clientId =
+    process.env.LINKEDIN_CLIENT_ID?.trim();
+
+  const redirectUri =
+    "https://linkedin-webhook-service-1.onrender.com/api/v1/linkedin/oauth/callback";
+
+  const scopes = [
+    "openid",
+    "profile",
+    "email",
+    "r_organization_admin",
+    "r_organization_social",
+    "w_organization_social"
+  ].join(" ");
+
+  const authorizationUrl =
+    "https://www.linkedin.com/oauth/v2/authorization" +
+    `?response_type=code` +
+    `&client_id=${encodeURIComponent(clientId)}` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&state=browser-test-123` +
+    `&scope=${encodeURIComponent(scopes)}`;
+
+  return res.redirect(authorizationUrl);
+};
+
+
+const linkedInOAuthCallback = async (req, res) => {
+
+  try {
+    const {
+      code,
+      state,
+      error,
+      error_description
+    } = req.query;
+
+    if (error) {
+      console.error("LinkedIn OAuth error:", error, error_description);
+      return res.status(400).json({
+        success: false,
+        error,
+        error_description
+      });
+
+    }
+
+    if (!code) {
+      console.error("LinkedIn OAuth error: Authorization code was not returned");
+      return res.status(400).json({
+        success: false,
+        message:
+          "Authorization code was not returned"
+      });
+
+    }
+
+    // -----------------------------
+    // Verify state
+    // -----------------------------
+
+    // const savedState = req.cookies.linkedin_oauth_state;
+    const savedState = "browser-test-123";
+
+    if (!savedState || savedState !== state) {
+
+      console.error("LinkedIn OAuth error: OAuth state mismatch");
+      return res.status(400).json({
+        success: false,
+        message:
+          "OAuth state mismatch"
+      });
+
+    }
+
+    // -----------------------------
+    // Get PKCE verifier
+    // -----------------------------
+
+    // const codeVerifier = req.cookies.linkedin_code_verifier;
+    // const codeVerifier = req.query.codeVerifier;
+    // console.log("PKCE code:", codeVerifier);
+
+    // if (!codeVerifier) {
+    //   console.error("LinkedIn OAuth error: PKCE code is missing");
+    //   return res.status(400).json({
+    //     success: false,
+    //     message:
+    //       "PKCE code is missing"
+    //   });
+    // }
+
+    const clientId = process.env.LINKEDIN_CLIENT_ID?.trim();
+
+    const clientSecret = process.env.LINKEDIN_CLIENT_SECRET?.trim();
+
+    const redirectUri = "https://linkedin-webhook-service-1.onrender.com/api/v1/linkedin/oauth/callback";
+
+    console.log("========== LINKEDIN OAUTH CONFIG ==========");
+    console.log("Client ID:", process.env.LINKEDIN_CLIENT_ID?.trim());
+    console.log("Client Secret exists:", !!process.env.LINKEDIN_CLIENT_SECRET);
+    console.log("Client Secret length:", process.env.LINKEDIN_CLIENT_SECRET?.trim().length);
+    console.log("Redirect URI:", process.env.LINKEDIN_REDIRECT_URI?.trim());
+    console.log("============================================");
+
+    // -----------------------------
+    // Exchange authorization code
+    // -----------------------------
+
+    const params = new URLSearchParams();
+
+    params.append("grant_type", "authorization_code");
+    params.append("code", code);
+    params.append("client_id", clientId);
+    params.append("client_secret", clientSecret);
+    params.append("redirect_uri", redirectUri);
+    // params.append("code_verifier", codeVerifier);
+
+    console.log("Exchanging authorization code for access token...");
+    console.log("params:", params.toString());
+
+    const response = await axios.post(
+      "https://www.linkedin.com/oauth/v2/accessToken",
+      params.toString(),
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        validateStatus: () => true
+      }
+    );
+
+    console.log("========================================");
+    console.log("LinkedIn token response:", response);
+
+    console.log("LinkedIn token response status:", response.status);
+    console.log("LinkedIn token response:", response.data);
+
+    if (response.status !== 200) {
+
+      return res.status(response.status).json({
+        success: false,
+        linkedinStatus: response.status,
+        linkedinResponse: response.data
+      });
+
+    }
+
+    const newAccessToken = response.data.access_token;
+
+    console.log("========== NEW LINKEDIN TOKEN ==========");
+    console.log("Length:", newAccessToken.length);
+    console.log("Beginning:", newAccessToken.substring(0, 12));
+    console.log("Ending:", newAccessToken.slice(-12));
+    console.log("=========================================");
+
+    // -----------------------------
+    // Test the NEW token immediately
+    // -----------------------------
+
+    const userInfoResponse =
+      await axios.get(
+        "https://api.linkedin.com/v2/userinfo",
+        {
+          headers: {
+            Authorization:
+              `Bearer ${newAccessToken}`
+          },
+          validateStatus: () => true
+        }
+      );
+
+    return res.status(200).json({
+
+      success:
+        userInfoResponse.status >= 200 &&
+        userInfoResponse.status < 300,
+
+      message:
+        "LinkedIn OAuth completed",
+
+      token: {
+        exists: !!newAccessToken,
+        length: newAccessToken?.length
+      },
+
+      oauth: {
+        status: response.status,
+        scope: response.data.scope,
+        expires_in: response.data.expires_in
+      },
+
+      userinfo: {
+        status: userInfoResponse.status,
+        data: userInfoResponse.data
+      }
+
+    });
+
+  } catch (error) {
+
+    console.error(
+      "LinkedIn OAuth callback error:",
+      error.response?.data ||
+      error.message
+    );
+
+    return res.status(500).json({
+
+      success: false,
+
+      error:
+        error.response?.data ||
+        error.message
+
+    });
+
+  }
+};
+
+module.exports = {getCompanyPosts, startLinkedInOAuth, linkedInOAuthCallback};
