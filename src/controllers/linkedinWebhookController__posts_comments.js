@@ -2621,6 +2621,8 @@ const getCompanyPosts = async (req, res) => {
 
       const reactionsResponse = await getPostReactions(post.id, accessToken);
 
+      postData.reactionsResponse = reactionsResponse;
+
       console.log("Reactions response:", reactionsResponse);
       
       let reactions = [];
@@ -2742,6 +2744,42 @@ async function getPostReactions(postUrn) {
     }
 
     return response.data.elements || [];
+}
+
+function formatReactionDates(reactions) {
+
+    return reactions.map(reaction => {
+
+        const result = {
+            ...reaction
+        };
+
+        if (result.created) {
+
+            result.created = {
+                ...result.created,
+
+                formattedTime:
+                    formatDateTime(
+                        result.created.time
+                    )
+            };
+        }
+
+        if (result.lastModified) {
+
+            result.lastModified = {
+                ...result.lastModified,
+
+                formattedTime:
+                    formatDateTime(
+                        result.lastModified.time
+                    )
+            };
+        }
+
+        return result;
+    });
 }
 
 const debugStoredToken = async (req, res) => {
