@@ -38,7 +38,7 @@ if (!fs.existsSync(MEDIA_ROOT)) {
 
 function getLinkedInHeaders(extraHeaders = {}) {
   const headers = {
-    Authorization: `Bearer ${LINKEDIN_ACCESS_TOKEN}`,
+    Authorization: `Bearer ${ACCESS_TOKEN}`,
     "Linkedin-Version": "202608",
     "X-Restli-Protocol-Version": "2.0.0"
   };
