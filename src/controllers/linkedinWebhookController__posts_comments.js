@@ -2621,8 +2621,6 @@ const getCompanyPosts = async (req, res) => {
 
       const reactionsResponse = await getPostReactions(post.id, accessToken);
 
-      postData.reactionsResponse = reactionsResponse;
-
       console.log("Reactions response:", reactionsResponse);
       
       let reactions = [];
@@ -2698,89 +2696,23 @@ const getPostDetails = async (postUrn, accessToken) => {
 };
 
 
-// const getPostReactions_old = async (postUrn, accessToken) => {
+const getPostReactions = async (postUrn, accessToken) => {
 
-//   const encodedPostUrn = encodeURIComponent(postUrn);
-//   const url = `https://api.linkedin.com/rest/reactions/` + `(entity:${encodedPostUrn})` + `?q=entity`;
+  const encodedPostUrn = encodeURIComponent(postUrn);
+  const url = `https://api.linkedin.com/rest/reactions/` + `(entity:${encodedPostUrn})` + `?q=entity`;
 
-//   console.log("Reactions URL:", url);
+  console.log("Reactions URL:", url);
 
-//   return await axios.get(url, {
-//     headers: {
-//       Authorization: `Bearer ${accessToken}`,
-//       "X-Restli-Protocol-Version": "2.0.0",
-//       "Linkedin-Version": "202608"
-//     },
+  return await axios.get(url, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "X-Restli-Protocol-Version": "2.0.0",
+      "Linkedin-Version": "202608"
+    },
 
-//     validateStatus: () => true
-//   });
-// };
-
-async function getPostReactions(postUrn) {
-
-    const encodedPostUrn =
-        encodeURIComponent(postUrn);
-
-    const reactionsUrl =
-        `${LINKEDIN_BASE_URL}/reactions` +
-        `(entity:${encodedPostUrn})` +
-        `?q=entity`;
-
-    const response = await axios.get(
-        reactionsUrl,
-        {
-            headers: getLinkedInHeaders(),
-            validateStatus: () => true
-        }
-    );
-
-    if (response.status !== 200) {
-        console.error(
-            "Reactions API response:",
-            response.data
-        );
-
-        return [];
-    }
-
-    return response.data.elements || [];
-}
-
-function formatReactionDates(reactions) {
-
-    return reactions.map(reaction => {
-
-        const result = {
-            ...reaction
-        };
-
-        if (result.created) {
-
-            result.created = {
-                ...result.created,
-
-                formattedTime:
-                    formatDateTime(
-                        result.created.time
-                    )
-            };
-        }
-
-        if (result.lastModified) {
-
-            result.lastModified = {
-                ...result.lastModified,
-
-                formattedTime:
-                    formatDateTime(
-                        result.lastModified.time
-                    )
-            };
-        }
-
-        return result;
-    });
-}
+    validateStatus: () => true
+  });
+};
 
 const debugStoredToken = async (req, res) => {
   try {

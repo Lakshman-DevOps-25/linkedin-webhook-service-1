@@ -519,149 +519,179 @@ async function getPostComments(postUrn) {
 // REACTIONS
 // ============================================================
 
+// async function getPostReactions(postUrn) {
+
+//     /*
+//      * IMPORTANT:
+//      *
+//      * Put the exact reaction implementation that was working
+//      * in your previous generated code here.
+//      *
+//      * The current code intentionally does not use:
+//      *
+//      * /reactions(entity:urn...)
+//      *
+//      * because your latest test returned:
+//      *
+//      * 404 RESOURCE_NOT_FOUND
+//      */
+
+//     try {
+
+//         /*
+//          * Example:
+//          *
+//          * If your previous implementation already has a working
+//          * LinkedIn reactions request, keep that request here.
+//          */
+
+//         const encodedPostUrn =
+//             encodeURIComponent(postUrn);
+
+//         /*
+//          * If your earlier working implementation used another
+//          * endpoint, replace ONLY the URL below with that exact
+//          * endpoint.
+//          */
+
+//         const reactionsUrl =
+//             `${LINKEDIN_BASE_URL}/socialMetadata/` +
+//             `${encodedPostUrn}`;
+
+//         console.log(
+//             "Reactions/Social Metadata URL:",
+//             reactionsUrl
+//         );
+
+//         const response = await axios.get(
+//             reactionsUrl,
+//             {
+//                 headers: getLinkedInHeaders(),
+//                 validateStatus: () => true
+//             }
+//         );
+
+//         console.log(
+//             "Reactions API status:",
+//             response.status
+//         );
+
+//         if (
+//             response.status !== 200 &&
+//             response.status !== 207
+//         ) {
+
+//             console.error(
+//                 "Reactions API response:",
+//                 response.data
+//             );
+
+//             return {
+//                 available: false,
+//                 count: 0,
+//                 items: [],
+//                 reason:
+//                     response.data?.message ||
+//                     "Unable to retrieve reactions"
+//             };
+//         }
+
+//         const elements =
+//             response.data?.elements || [];
+
+//         const reactions =
+//             elements.map(reaction => {
+
+//                 return {
+
+//                     id:
+//                         reaction.id ||
+//                         reaction.$URN ||
+//                         null,
+
+//                     actor:
+//                         reaction.actor ||
+//                         reaction.reactor ||
+//                         null,
+
+//                     actorName:
+//                         reaction.actor ||
+//                         reaction.reactor ||
+//                         null,
+
+//                     reactionType:
+//                         reaction.reactionType ||
+//                         reaction.type ||
+//                         null,
+
+//                     createdAt:
+//                         formatDateTime(
+//                             reaction.created?.time ||
+//                             reaction.createdAt
+//                         )
+//                 };
+//             });
+
+//         return {
+
+//             available: true,
+
+//             count: reactions.length,
+
+//             items: reactions
+//         };
+
+//     } catch (error) {
+
+//         console.error(
+//             "getPostReactions ERROR:",
+//             error.response?.data ||
+//             error.message
+//         );
+
+//         return {
+
+//             available: false,
+
+//             count: 0,
+
+//             items: [],
+
+//             reason:
+//                 error.response?.data?.message ||
+//                 error.message
+//         };
+//     }
+// }
+
 async function getPostReactions(postUrn) {
 
-    /*
-     * IMPORTANT:
-     *
-     * Put the exact reaction implementation that was working
-     * in your previous generated code here.
-     *
-     * The current code intentionally does not use:
-     *
-     * /reactions(entity:urn...)
-     *
-     * because your latest test returned:
-     *
-     * 404 RESOURCE_NOT_FOUND
-     */
+    const encodedPostUrn =
+        encodeURIComponent(postUrn);
 
-    try {
+    const reactionsUrl =
+        `${LINKEDIN_BASE_URL}/reactions` +
+        `(entity:${encodedPostUrn})` +
+        `?q=entity`;
 
-        /*
-         * Example:
-         *
-         * If your previous implementation already has a working
-         * LinkedIn reactions request, keep that request here.
-         */
-
-        const encodedPostUrn =
-            encodeURIComponent(postUrn);
-
-        /*
-         * If your earlier working implementation used another
-         * endpoint, replace ONLY the URL below with that exact
-         * endpoint.
-         */
-
-        const reactionsUrl =
-            `${LINKEDIN_BASE_URL}/socialMetadata/` +
-            `${encodedPostUrn}`;
-
-        console.log(
-            "Reactions/Social Metadata URL:",
-            reactionsUrl
-        );
-
-        const response = await axios.get(
-            reactionsUrl,
-            {
-                headers: getLinkedInHeaders(),
-                validateStatus: () => true
-            }
-        );
-
-        console.log(
-            "Reactions API status:",
-            response.status
-        );
-
-        if (
-            response.status !== 200 &&
-            response.status !== 207
-        ) {
-
-            console.error(
-                "Reactions API response:",
-                response.data
-            );
-
-            return {
-                available: false,
-                count: 0,
-                items: [],
-                reason:
-                    response.data?.message ||
-                    "Unable to retrieve reactions"
-            };
+    const response = await axios.get(
+        reactionsUrl,
+        {
+            headers: getLinkedInHeaders(),
+            validateStatus: () => true
         }
+    );
 
-        const elements =
-            response.data?.elements || [];
-
-        const reactions =
-            elements.map(reaction => {
-
-                return {
-
-                    id:
-                        reaction.id ||
-                        reaction.$URN ||
-                        null,
-
-                    actor:
-                        reaction.actor ||
-                        reaction.reactor ||
-                        null,
-
-                    actorName:
-                        reaction.actor ||
-                        reaction.reactor ||
-                        null,
-
-                    reactionType:
-                        reaction.reactionType ||
-                        reaction.type ||
-                        null,
-
-                    createdAt:
-                        formatDateTime(
-                            reaction.created?.time ||
-                            reaction.createdAt
-                        )
-                };
-            });
-
-        return {
-
-            available: true,
-
-            count: reactions.length,
-
-            items: reactions
-        };
-
-    } catch (error) {
-
+    if (response.status !== 200) {
         console.error(
-            "getPostReactions ERROR:",
-            error.response?.data ||
-            error.message
+            "Reactions API response:",
+            response.data
         );
 
-        return {
-
-            available: false,
-
-            count: 0,
-
-            items: [],
-
-            reason:
-                error.response?.data?.message ||
-                error.message
-        };
+        return [];
     }
+
+    return response.data.elements || [];
 }
 
 
