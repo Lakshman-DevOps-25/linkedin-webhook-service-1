@@ -2485,9 +2485,9 @@ const getCompanyPosts = async (req, res) => {
       {
         params: {
           q: "author",
-          author: organizationUrn,
-          count: 10,
-          sortBy: "LAST_MODIFIED"
+          author: `${encodeURIComponent(organizationUrn)}`,
+          // count: 10,
+          // sortBy: "LAST_MODIFIED"
         },
 
         headers: {
