@@ -2460,7 +2460,7 @@ const linkedInOAuthCallback = async (req, res) => {
 
 
 
-const getCompanyPosts = async (req, res) => {
+const getCompanyPosts_old = async (req, res) => {
   try {
     const accessToken =
       process.env.LINKEDIN_ACCESS_TOKEN?.trim();
@@ -2542,6 +2542,179 @@ const getCompanyPosts = async (req, res) => {
   }
 };
 
+const getCompanyPosts = async (req, res) => {
+  try {
+    const accessToken = process.env.LINKEDIN_ACCESS_TOKEN?.trim();
+
+    const organizationUrn = "urn:li:organization:144819239";
+
+    if (!accessToken) {
+      return res.status(500).json({
+        success: false,
+        message: "LINKEDIN_ACCESS_TOKEN is not configured"
+      });
+    }
+
+    // -----------------------------------------
+    // STEP 1: Get organization posts
+    // -----------------------------------------
+
+    const encodedOrganizationUrn = encodeURIComponent(organizationUrn);
+
+    const postsUrl =
+      `https://api.linkedin.com/rest/posts` +
+      `?author=${encodedOrganizationUrn}` +
+      `&q=author` +
+      `&count=10` +
+      `&sortBy=LAST_MODIFIED`;
+
+    const postsResponse = await axios.get(
+      postsUrl,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "X-Restli-Protocol-Version": "2.0.0",
+          "X-RestLi-Method": "FINDER",
+          "Linkedin-Version": "202608"
+        },
+        validateStatus: () => true
+      }
+    );
+
+    if (
+      postsResponse.status < 200 || postsResponse.status >= 300
+    ) {
+      return res.status(postsResponse.status).json({
+        success: false,
+        linkedinStatus: postsResponse.status,
+        linkedinResponse: postsResponse.data
+      });
+    }
+
+    const posts = postsResponse.data.elements || [];
+
+    // -----------------------------------------
+    // STEP 2: Process each post
+    // -----------------------------------------
+
+    const enrichedPosts = [];
+
+    for (const post of posts) {
+      console.log("Processing post:", post.id
+      );
+
+      // ---------------------------------------
+      // STEP 2A: Get full post
+      // ---------------------------------------
+
+      const postDetailsResponse = await getPostDetails(post.id, accessToken);
+
+      let postDetails = post;
+
+      if (postDetailsResponse.status >= 200 && postDetailsResponse.status < 300) {
+        postDetails = postDetailsResponse.data;
+      }
+
+      // ---------------------------------------
+      // STEP 2B: Get reactions
+      // ---------------------------------------
+
+      const reactionsResponse = await getPostReactions(post.id, accessToken);
+
+      console.log("Reactions response:", reactionsResponse);
+      
+      let reactions = [];
+
+      if (reactionsResponse.status >= 200 && reactionsResponse.status < 300) {
+        reactions = reactionsResponse.data.elements || [];
+      } else {
+        console.log("Reactions API status:", reactionsResponse.status
+        );
+
+        console.log("Reactions API response:", reactionsResponse.data);
+      }
+
+      // ---------------------------------------
+      // STEP 2C: Extract media
+      // ---------------------------------------
+
+      const media = postDetails.content?.media || null;
+
+      enrichedPosts.push({
+        id: postDetails.id,
+        author: postDetails.author,
+        message: postDetails.commentary || null,
+        visibility: postDetails.visibility || null,
+        lifecycleState: postDetails.lifecycleState || null,
+        createdAt: postDetails.createdAt || null,
+        publishedAt: postDetails.publishedAt || null,
+        lastModifiedAt: postDetails.lastModifiedAt || null,
+        media,
+        reactions
+      });
+    }
+
+    // -----------------------------------------
+    // STEP 3: Return result
+    // -----------------------------------------
+
+    return res.status(200).json({
+      success: true,
+      organization: organizationUrn,
+      count: enrichedPosts.length,
+      posts: enrichedPosts
+    });
+
+  } catch (error) {
+
+    console.error("LinkedIn Company Posts error:", error.response?.data || error.message);
+
+    return res.status(500).json({
+      success: false,
+      error:
+        error.response?.data || error.message
+    });
+  }
+};
+
+const axios = require("axios");
+
+
+const getPostDetails = async (postUrn, accessToken) => {
+
+  const encodedPostUrn = encodeURIComponent(postUrn);
+  const url = `https://api.linkedin.com/rest/posts/${encodedPostUrn}`;
+
+  console.log("Post details URL:", url);
+
+  return await axios.get(url, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "X-Restli-Protocol-Version": "2.0.0",
+      "Linkedin-Version": "202608"
+    },
+    validateStatus: () => true
+  });
+};
+
+
+const getPostReactions = async (postUrn, accessToken) => {
+
+  const encodedPostUrn = encodeURIComponent(postUrn);
+  const url = `https://api.linkedin.com/rest/reactions/` + `(entity:${encodedPostUrn})` + `?q=entity`;
+
+  console.log("Reactions URL:", url);
+
+  return await axios.get(url, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "X-Restli-Protocol-Version": "2.0.0",
+      "Linkedin-Version": "202608"
+    },
+
+    validateStatus: () => true
+  });
+};
 
 const debugStoredToken = async (req, res) => {
   try {
