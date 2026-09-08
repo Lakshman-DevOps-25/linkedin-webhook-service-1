@@ -2475,38 +2475,33 @@ const getCompanyPosts = async (req, res) => {
       });
     }
 
+    // Encode the URN exactly once
+    const encodedOrganizationUrn =
+      encodeURIComponent(organizationUrn);
+
+    const linkedinUrl =
+      `https://api.linkedin.com/rest/posts` +
+      `?author=${encodedOrganizationUrn}` +
+      `&q=author` +
+      `&count=10` +
+      `&sortBy=LAST_MODIFIED`;
+
     console.log("========== LINKEDIN POSTS ==========");
-    console.log("Token exists:", !!accessToken);
-    console.log("Token length:", accessToken.length);
-    console.log(
-      "Token beginning:",
-      accessToken.substring(0, 12)
-    );
-    console.log(
-      "Token ending:",
-      accessToken.slice(-12)
-    );
     console.log("Organization:", organizationUrn);
+    console.log("Encoded organization:", encodedOrganizationUrn);
+    console.log("LinkedIn URL:", linkedinUrl);
+    console.log("Token length:", accessToken.length);
     console.log("====================================");
 
-    const response = await axios.get(
-      "https://api.linkedin.com/rest/posts",
-      {
-        params: {
-          q: "author",
-          author: organizationUrn
-        },
-
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "X-Restli-Protocol-Version": "2.0.0",
-          "X-RestLi-Method": "FINDER",
-          "Linkedin-Version": "202608"
-        },
-
-        validateStatus: () => true
-      }
-    );
+    const response = await axios.get(linkedinUrl, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "X-Restli-Protocol-Version": "2.0.0",
+        "X-RestLi-Method": "FINDER",
+        "Linkedin-Version": "202608"
+      },
+      validateStatus: () => true
+    });
 
     console.log(
       "LinkedIn Posts status:",
@@ -2542,9 +2537,7 @@ const getCompanyPosts = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      error:
-        error.response?.data ||
-        error.message
+      error: error.response?.data || error.message
     });
   }
 };
