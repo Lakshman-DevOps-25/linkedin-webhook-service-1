@@ -2677,8 +2677,6 @@ const getCompanyPosts = async (req, res) => {
   }
 };
 
-const axios = require("axios");
-
 
 const getPostDetails = async (postUrn, accessToken) => {
 
