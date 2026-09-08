@@ -1021,7 +1021,7 @@ function getFileExtension(
 // EXPRESS CONTROLLER
 // ============================================================
 
-const getCompanyPosts = (req, res) => {
+const getCompanyPosts = async (req, res) => {
 
     try {
 
