@@ -30,6 +30,36 @@ app.get("/health", (req, res) => {
 
 });
 
+// 2. New Route to Serve the Frontend HTML with the Meta JS SDK
+app.get("/signup", (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Meta SDK Setup</title>
+    </head>
+    <body>
+        <h1>Meta SDK Integration Page</h1>
+
+        <!-- Meta Frontend JavaScript SDK -->
+        <script>
+          window.fbAsyncInit = function() {
+            FB.init({
+              appId            : '1353462970255772', // Replace with your Meta App ID
+              autoLogAppEvents : true,
+              xfbml            : true,
+              version          : 'v26.0'
+            });
+            console.log("Meta SDK successfully initialized in the browser!");
+          };
+        </script>
+        <script async defer crossorigin="anonymous" src="https://facebook.net"></script>
+    </body>
+    </html>
+  `);
+});
+
 
 // ========================================
 // LINKEDIN ROUTES
