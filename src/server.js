@@ -54,7 +54,7 @@ app.get("/signup", (req, res) => {
             console.log("Meta SDK successfully initialized in the browser!");
           };
         </script>
-        <script async defer crossorigin="anonymous" src="https://facebook.net"></script>
+        <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
     </body>
     </html>
   `);
